@@ -32,10 +32,9 @@ class _MountainPageState extends State<MountainPage> {
     try {
       final result = await Navigator.of(context).push<bool>(
         PageRouteBuilder(
-          opaque: false,
-          barrierColor: Colors.transparent,
-          transitionDuration: const Duration(milliseconds: 400),
-          reverseTransitionDuration: const Duration(milliseconds: 350),
+          opaque: true,
+          transitionDuration: const Duration(milliseconds: 450),
+          reverseTransitionDuration: const Duration(milliseconds: 400),
           pageBuilder: (context, animation, secondaryAnimation) {
             return MountainDetailScreen(
               mountain: mountain,
@@ -46,6 +45,7 @@ class _MountainPageState extends State<MountainPage> {
             return child;
           },
         ),
+
       );
 
       if (result != null && mounted) {
@@ -331,7 +331,7 @@ class _MountainPageState extends State<MountainPage> {
                     createRectTween: (begin, end) =>
                         SmoothHeroRectTween(begin: begin, end: end),
                     placeholderBuilder: (context, heroSize, child) {
-                      return child;
+                      return SizedBox.fromSize(size: heroSize);
                     },
                     flightShuttleBuilder: (
                       flightContext,

@@ -85,79 +85,37 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
       return;
     }
 
-    // 1. Content Sheet Container: subtle fade and gentle 4% lift synchronized with flight
-    _sheetOpacity = CurvedAnimation(
-      parent: parent,
-      curve: const Interval(0.05, 0.60, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.0, 0.50, curve: Curves.easeInCubic),
-    );
+    // Content Sheet Container: smooth unified lift tracked with hero flight
+    _sheetOpacity = const AlwaysStoppedAnimation(1.0);
     _sheetSlide = Tween<Offset>(
-      begin: const Offset(0, 0.04),
+      begin: const Offset(0, 0.06),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: parent,
-      curve: const Interval(0.05, 0.60, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.0, 0.50, curve: Curves.easeInCubic),
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
     ));
 
-    // Stagger 1: Mountain Title
-    _titleOpacity = CurvedAnimation(
-      parent: parent,
-      curve: const Interval(0.08, 0.65, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.0, 0.45, curve: Curves.easeInCubic),
-    );
-    _titleSlide = Tween<Offset>(
-      begin: const Offset(0, 0.04),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: parent,
-      curve: const Interval(0.08, 0.65, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.0, 0.45, curve: Curves.easeInCubic),
-    ));
+    _titleOpacity = const AlwaysStoppedAnimation(1.0);
+    _titleSlide = const AlwaysStoppedAnimation(Offset.zero);
+    _metaOpacity = const AlwaysStoppedAnimation(1.0);
+    _metaSlide = const AlwaysStoppedAnimation(Offset.zero);
+    _descOpacity = const AlwaysStoppedAnimation(1.0);
+    _descSlide = const AlwaysStoppedAnimation(Offset.zero);
 
-    // Stagger 2: Elevation & Location
-    _metaOpacity = CurvedAnimation(
-      parent: parent,
-      curve: const Interval(0.10, 0.70, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.0, 0.40, curve: Curves.easeInCubic),
-    );
-    _metaSlide = Tween<Offset>(
-      begin: const Offset(0, 0.04),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: parent,
-      curve: const Interval(0.10, 0.70, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.0, 0.40, curve: Curves.easeInCubic),
-    ));
-
-    // Stagger 3: Short Description
-    _descOpacity = CurvedAnimation(
-      parent: parent,
-      curve: const Interval(0.14, 0.75, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.0, 0.35, curve: Curves.easeInCubic),
-    );
-    _descSlide = Tween<Offset>(
-      begin: const Offset(0, 0.04),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: parent,
-      curve: const Interval(0.14, 0.75, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.0, 0.35, curve: Curves.easeInCubic),
-    ));
-
-    // Top Controls: Fade and scale synchronized with hero flight
+    // Top Controls: Fade and scale gently as image reaches top
     _controlsOpacity = CurvedAnimation(
       parent: parent,
-      curve: const Interval(0.05, 0.55, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.0, 0.45, curve: Curves.easeInCubic),
+      curve: const Interval(0.20, 0.85, curve: Curves.easeOutCubic),
+      reverseCurve: const Interval(0.20, 0.85, curve: Curves.easeInCubic),
     );
     _controlsScale = Tween<double>(
       begin: 0.90,
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: parent,
-      curve: const Interval(0.05, 0.55, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.0, 0.45, curve: Curves.easeInCubic),
+      curve: const Interval(0.20, 0.85, curve: Curves.easeOutCubic),
+      reverseCurve: const Interval(0.20, 0.85, curve: Curves.easeInCubic),
     ));
 
     _gradientOpacity = const AlwaysStoppedAnimation(1.0);
@@ -177,7 +135,7 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {},
       child: Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFFF3F6FC),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
@@ -220,31 +178,18 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
                                   ),
                                 );
                               },
-                              child: AnimatedBuilder(
-                                animation: ModalRoute.of(context)?.animation ??
-                                    _fallbackController,
-                                builder: (context, child) {
-                                  final anim = ModalRoute.of(context)?.animation ??
-                                      _fallbackController;
-                                  final isComplete = anim.value >= 0.99;
-                                  return Opacity(
-                                    opacity: isComplete ? 1.0 : 0.0,
-                                    child: child,
-                                  );
-                                },
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.only(
-                                    bottomLeft: Radius.circular(28),
-                                    bottomRight: Radius.circular(28),
-                                  ),
-                                  child: SizedBox(
-                                    height: 380,
-                                    width: double.infinity,
-                                    child: MountainImageWidget(
-                                      imageUrl: mountain.imageUrl,
-                                      mountainName: mountain.name,
-                                      fit: BoxFit.cover,
-                                    ),
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(28),
+                                  bottomRight: Radius.circular(28),
+                                ),
+                                child: SizedBox(
+                                  height: 380,
+                                  width: double.infinity,
+                                  child: MountainImageWidget(
+                                    imageUrl: mountain.imageUrl,
+                                    mountainName: mountain.name,
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
                               ),
@@ -279,31 +224,28 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
                         ),
                       ),
 
-                      // 2. Coordinated Staggered Content Sheet
-                      FadeTransition(
-                        opacity: _sheetOpacity,
-                        child: SlideTransition(
-                          position: _sheetSlide,
-                          child: Container(
-                            width: double.infinity,
-                            constraints: BoxConstraints(
-                              minHeight: (MediaQuery.sizeOf(context).height - 350)
-                                  .clamp(0.0, double.infinity),
+                      // 2. Coordinated Staggered Content Sheet (Directly rendered without competing slide/fade)
+                      Container(
+                        width: double.infinity,
+                        constraints: BoxConstraints(
+                          minHeight: (MediaQuery.sizeOf(context).height - 350)
+                              .clamp(0.0, double.infinity),
+                        ),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(32),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x0F000000),
+                              blurRadius: 24,
+                              offset: Offset(0, -6),
                             ),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(32),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Color(0x0F000000),
-                                  blurRadius: 24,
-                                  offset: Offset(0, -6),
-                                ),
-                              ],
-                            ),
-                            padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
+                          ],
+                        ),
+                        padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
+
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -401,105 +343,100 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
                                 ),
                                 const SizedBox(height: 22),
 
-                                // Stagger 3: Concise Factual Description
-                                FadeTransition(
-                                  opacity: _descOpacity,
-                                  child: SlideTransition(
-                                    position: _descSlide,
-                                    child: Text(
-                                      mountain.description,
-                                      style: const TextStyle(
-                                        fontSize: 14.5,
-                                        color: Color(0xFF475569),
-                                        height: 1.65,
-                                        fontWeight: FontWeight.w400,
+                                  // Stagger 3: Concise Factual Description
+                                  FadeTransition(
+                                    opacity: _descOpacity,
+                                    child: SlideTransition(
+                                      position: _descSlide,
+                                      child: Text(
+                                        mountain.description,
+                                        style: const TextStyle(
+                                          fontSize: 14.5,
+                                          color: Color(0xFF475569),
+                                          height: 1.65,
+                                          fontWeight: FontWeight.w400,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 3. Floating Top Controls: Circular Back Button & Favorite Heart Control
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: FadeTransition(
-                      opacity: _controlsOpacity,
-                      child: ScaleTransition(
-                        scale: _controlsScale,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Circular Back Button with comfortable 44x44 touch target
-                            InkWell(
-                              borderRadius: BorderRadius.circular(24),
-                              onTap: () => Navigator.of(context).pop(_isFavorited),
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.15),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_back,
-                                  size: 20,
-                                  color: Color(0xFF1E1B2E),
-                                ),
-                              ),
-                            ),
-
-                            // Circular Favorite Heart Control with comfortable 44x44 touch target
-                            InkWell(
-                              borderRadius: BorderRadius.circular(24),
-                              onTap: () {
-                                setState(() {
-                                  _isFavorited = !_isFavorited;
-                                });
-                              },
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.15),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  _isFavorited ? Icons.favorite : Icons.favorite_border,
-                                  size: 22,
-                                  color: _isFavorited
-                                      ? const Color(0xFF7C3AED)
-                                      : const Color(0xFF1E1B2E),
-                                ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
+
+
+
+                // 3. Floating Top Controls: Circular Back Button & Favorite Heart Control (Directly rendered)
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Circular Back Button with comfortable 44x44 touch target
+                        InkWell(
+                          borderRadius: BorderRadius.circular(24),
+                          onTap: () => Navigator.of(context).pop(_isFavorited),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.arrow_back,
+                              size: 20,
+                              color: Color(0xFF1E1B2E),
+                            ),
+                          ),
+                        ),
+
+                        // Circular Favorite Heart Control with comfortable 44x44 touch target
+                        InkWell(
+                          borderRadius: BorderRadius.circular(24),
+                          onTap: () {
+                            setState(() {
+                              _isFavorited = !_isFavorited;
+                            });
+                          },
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              _isFavorited ? Icons.favorite : Icons.favorite_border,
+                              size: 22,
+                              color: _isFavorited
+                                  ? const Color(0xFF7C3AED)
+                                  : const Color(0xFF1E1B2E),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
+
               ],
             ),
           ),

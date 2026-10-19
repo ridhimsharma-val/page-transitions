@@ -18,44 +18,9 @@ class MountainImageWidget extends StatelessWidget {
       imageUrl,
       fit: fit,
       gaplessPlayback: true,
-      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (wasSynchronouslyLoaded || frame != null) return child;
-        return Container(
-          color: const Color(0xFFEAEFF6),
-        );
-      },
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return _buildLoadingPlaceholder(loadingProgress);
-      },
       errorBuilder: (context, error, stackTrace) {
         return _buildFallbackCanvas();
       },
-    );
-  }
-
-  Widget _buildLoadingPlaceholder(ImageChunkEvent progress) {
-    final expectedTotalBytes = progress.expectedTotalBytes;
-    final loadedBytes = progress.cumulativeBytesLoaded;
-    final percentage = expectedTotalBytes != null && expectedTotalBytes > 0
-        ? (loadedBytes / expectedTotalBytes).clamp(0.0, 1.0)
-        : null;
-
-    return Container(
-      color: const Color(0xFFEAEFF6),
-      child: Center(
-        child: SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(
-            value: percentage,
-            strokeWidth: 2.2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              const Color(0xFF7C3AED).withValues(alpha: 0.6),
-            ),
-          ),
-        ),
-      ),
     );
   }
 

@@ -1,28 +1,32 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+
 import '../models/mountain_data.dart';
 import 'mountain_image_widget.dart';
 
-/// Standard linear Rect lerp driven smoothly by Flutter's HeroController curve.
+/// Interpolates the Hero image's bounds.
+///
+/// Keep this tween linear. Flutter's Hero flight animation already controls
+/// the timing curve, so applying another curve here can distort the motion.
 class SmoothHeroRectTween extends RectTween {
   SmoothHeroRectTween({super.begin, super.end});
 
   @override
   Rect? lerp(double t) {
-    if (begin == null || end == null) return null;
-    return Rect.fromLTRB(
-      ui.lerpDouble(begin!.left, end!.left, t)!,
-      ui.lerpDouble(begin!.top, end!.top, t)!,
-      ui.lerpDouble(begin!.right, end!.right, t)!,
-      ui.lerpDouble(begin!.bottom, end!.bottom, t)!,
-    );
+    final start = begin;
+    final finish = end;
+
+    if (start == null || finish == null) {
+      return null;
+    }
+
+    return Rect.lerp(start, finish, t);
   }
 }
 
-/// Ultra-smooth Hero flight shuttle:
-/// - Reuses static image instance (zero widget churn, zero re-renders per frame)
-/// - Perfectly synchronized corner radius morph in exact lockstep with flight bounds
-/// - Hardware-accelerated sub-pixel anti-aliased clipping with zero boundary jumps
+/// Image displayed inside the native Flutter Hero flight overlay.
+///
+/// The image stays as the AnimatedBuilder child, so changing the corner
+/// radius does not rebuild the image subtree on every animation tick.
 class MountainHeroFlightShuttle extends StatelessWidget {
   final Animation<double> animation;
   final HeroFlightDirection flightDirection;
@@ -44,33 +48,27 @@ class MountainHeroFlightShuttle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final disableAnimations = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-
-    // Build the static image widget ONCE so it is never recreated during flight
-    final staticImage = MountainImageWidget(
-      imageUrl: mountain.imageUrl,
-      mountainName: mountain.name,
-      fit: BoxFit.cover,
-    );
+    // Flutter drives this animation forward when opening and backward when
+    // returning. Using the same animation preserves reverse interpolation.
+    final radiusAnimation = BorderRadiusTween(
+      begin: sourceRadius,
+      end: destinationRadius,
+    ).animate(animation);
 
     return AnimatedBuilder(
-      animation: animation,
-      child: staticImage,
+      animation: radiusAnimation,
+      child: RepaintBoundary(
+        child: MountainImageWidget(
+          imageUrl: mountain.imageUrl,
+          mountainName: mountain.name,
+          fit: BoxFit.cover,
+        ),
+      ),
       builder: (context, child) {
-        if (disableAnimations) {
-          return ClipRRect(
-            borderRadius: destinationRadius,
-            child: child,
-          );
-        }
-
-        final t = animation.value.clamp(0.0, 1.0);
-        final currentRadius = BorderRadius.lerp(sourceRadius, destinationRadius, t)!;
-
         return ClipRRect(
-          borderRadius: currentRadius,
+          borderRadius: radiusAnimation.value ?? sourceRadius,
           clipBehavior: Clip.antiAlias,
-          child: child,
+          child: SizedBox.expand(child: child),
         );
       },
     );

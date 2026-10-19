@@ -297,6 +297,8 @@ void main() {
     expect(mid.height, closeTo(150.0, 0.01));
   });
 
+
+
   testWidgets('MountainDetailScreen respects disableAnimations / reduced motion',
       (WidgetTester tester) async {
     await tester.pumpWidget(
