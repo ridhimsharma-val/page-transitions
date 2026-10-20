@@ -282,7 +282,7 @@ void main() {
     controller.dispose();
   });
 
-  test('SmoothHeroRectTween lerps linearly across t [0, 1]', () {
+  test('SmoothHeroRectTween lerps with easeInOutCubicEmphasized across t [0, 1]', () {
     final tween = SmoothHeroRectTween(
       begin: const Rect.fromLTWH(0, 0, 100, 100),
       end: const Rect.fromLTWH(0, 0, 200, 200),
@@ -291,10 +291,11 @@ void main() {
     expect(tween.lerp(0.0), const Rect.fromLTWH(0, 0, 100, 100));
     expect(tween.lerp(1.0), const Rect.fromLTWH(0, 0, 200, 200));
 
-    // Linear midpoint at t = 0.5
+    // Midpoint at t = 0.5 with easeInOutCubicEmphasized
     final mid = tween.lerp(0.5)!;
-    expect(mid.width, closeTo(150.0, 0.01));
-    expect(mid.height, closeTo(150.0, 0.01));
+    final expectedVal = 100.0 + (200.0 - 100.0) * Curves.easeInOutCubicEmphasized.transform(0.5);
+    expect(mid.width, closeTo(expectedVal, 0.01));
+    expect(mid.height, closeTo(expectedVal, 0.01));
   });
 
 

@@ -86,13 +86,17 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
     }
 
     // Content Sheet Container: smooth unified lift tracked with hero flight
-    _sheetOpacity = const AlwaysStoppedAnimation(1.0);
+    _sheetOpacity = CurvedAnimation(
+      parent: parent,
+      curve: const Interval(0.15, 0.90, curve: Curves.easeOutCubic),
+      reverseCurve: const Interval(0.0, 0.60, curve: Curves.easeInCubic),
+    );
     _sheetSlide = Tween<Offset>(
-      begin: const Offset(0, 0.06),
+      begin: const Offset(0, 0.08),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: parent,
-      curve: Curves.easeOutCubic,
+      curve: const Interval(0.10, 1.0, curve: Curves.easeInOutCubicEmphasized),
       reverseCurve: Curves.easeInCubic,
     ));
 
@@ -103,19 +107,19 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
     _descOpacity = const AlwaysStoppedAnimation(1.0);
     _descSlide = const AlwaysStoppedAnimation(Offset.zero);
 
-    // Top Controls: Fade and scale gently as image reaches top
+    // Top Controls: Fade and scale gently as image settles
     _controlsOpacity = CurvedAnimation(
       parent: parent,
-      curve: const Interval(0.20, 0.85, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.20, 0.85, curve: Curves.easeInCubic),
+      curve: const Interval(0.35, 0.95, curve: Curves.easeOutCubic),
+      reverseCurve: const Interval(0.0, 0.45, curve: Curves.easeInCubic),
     );
     _controlsScale = Tween<double>(
-      begin: 0.90,
+      begin: 0.88,
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: parent,
-      curve: const Interval(0.20, 0.85, curve: Curves.easeOutCubic),
-      reverseCurve: const Interval(0.20, 0.85, curve: Curves.easeInCubic),
+      curve: const Interval(0.35, 0.95, curve: Curves.easeOutBack),
+      reverseCurve: const Interval(0.0, 0.45, curve: Curves.easeInCubic),
     ));
 
     _gradientOpacity = const AlwaysStoppedAnimation(1.0);
@@ -224,27 +228,31 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
                         ),
                       ),
 
-                      // 2. Coordinated Staggered Content Sheet (Directly rendered without competing slide/fade)
-                      Container(
-                        width: double.infinity,
-                        constraints: BoxConstraints(
-                          minHeight: (MediaQuery.sizeOf(context).height - 350)
-                              .clamp(0.0, double.infinity),
-                        ),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(32),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0x0F000000),
-                              blurRadius: 24,
-                              offset: Offset(0, -6),
+                      // 2. Coordinated Staggered Content Sheet
+                      FadeTransition(
+                        opacity: _sheetOpacity,
+                        child: SlideTransition(
+                          position: _sheetSlide,
+                          child: Container(
+                            width: double.infinity,
+                            constraints: BoxConstraints(
+                              minHeight: (MediaQuery.sizeOf(context).height - 350)
+                                  .clamp(0.0, double.infinity),
                             ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(32),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(0x0F000000),
+                                  blurRadius: 24,
+                                  offset: Offset(0, -6),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
 
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,77 +370,85 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-
-
-
-                // 3. Floating Top Controls: Circular Back Button & Favorite Heart Control (Directly rendered)
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Circular Back Button with comfortable 44x44 touch target
-                        InkWell(
-                          borderRadius: BorderRadius.circular(24),
-                          onTap: () => Navigator.of(context).pop(_isFavorited),
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.arrow_back,
-                              size: 20,
-                              color: Color(0xFF1E1B2E),
-                            ),
-                          ),
-                        ),
-
-                        // Circular Favorite Heart Control with comfortable 44x44 touch target
-                        InkWell(
-                          borderRadius: BorderRadius.circular(24),
-                          onTap: () {
-                            setState(() {
-                              _isFavorited = !_isFavorited;
-                            });
-                          },
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              _isFavorited ? Icons.favorite : Icons.favorite_border,
-                              size: 22,
-                              color: _isFavorited
-                                  ? const Color(0xFF7C3AED)
-                                  : const Color(0xFF1E1B2E),
-                            ),
                           ),
                         ),
                       ],
+                    ),
+                  ),
+
+
+
+                // 3. Floating Top Controls: Circular Back Button & Favorite Heart Control
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: FadeTransition(
+                      opacity: _controlsOpacity,
+                      child: ScaleTransition(
+                        scale: _controlsScale,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Circular Back Button with comfortable 44x44 touch target
+                            InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () => Navigator.of(context).pop(_isFavorited),
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.15),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_back,
+                                  size: 20,
+                                  color: Color(0xFF1E1B2E),
+                                ),
+                              ),
+                            ),
+
+                            // Circular Favorite Heart Control with comfortable 44x44 touch target
+                            InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () {
+                                setState(() {
+                                  _isFavorited = !_isFavorited;
+                                });
+                              },
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.15),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  _isFavorited ? Icons.favorite : Icons.favorite_border,
+                                  size: 22,
+                                  color: _isFavorited
+                                      ? const Color(0xFF7C3AED)
+                                      : const Color(0xFF1E1B2E),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),

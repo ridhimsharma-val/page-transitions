@@ -5,8 +5,8 @@ import 'mountain_image_widget.dart';
 
 /// Interpolates the Hero image's bounds.
 ///
-/// Keep this tween linear. Flutter's Hero flight animation already controls
-/// the timing curve, so applying another curve here can distort the motion.
+/// Smooth cubic easing gives the image a natural, buttery acceleration and
+/// deceleration across the screen.
 class SmoothHeroRectTween extends RectTween {
   SmoothHeroRectTween({super.begin, super.end});
 
@@ -19,7 +19,8 @@ class SmoothHeroRectTween extends RectTween {
       return null;
     }
 
-    return Rect.lerp(start, finish, t);
+    final curvedT = Curves.easeInOutCubicEmphasized.transform(t.clamp(0.0, 1.0));
+    return Rect.lerp(start, finish, curvedT);
   }
 }
 
@@ -48,12 +49,18 @@ class MountainHeroFlightShuttle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Flutter drives this animation forward when opening and backward when
-    // returning. Using the same animation preserves reverse interpolation.
+    // Drive the radius animation with the matching emphasized cubic curve
+    // so corner rounding stays in precise spatial lockstep with flight bounds.
+    final curvedAnimation = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeInOutCubicEmphasized,
+      reverseCurve: Curves.easeInOutCubicEmphasized.flipped,
+    );
+
     final radiusAnimation = BorderRadiusTween(
       begin: sourceRadius,
       end: destinationRadius,
-    ).animate(animation);
+    ).animate(curvedAnimation);
 
     return AnimatedBuilder(
       animation: radiusAnimation,

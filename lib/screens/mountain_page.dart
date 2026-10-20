@@ -33,8 +33,8 @@ class _MountainPageState extends State<MountainPage> {
       final result = await Navigator.of(context).push<bool>(
         PageRouteBuilder(
           opaque: true,
-          transitionDuration: const Duration(milliseconds: 450),
-          reverseTransitionDuration: const Duration(milliseconds: 400),
+          transitionDuration: const Duration(milliseconds: 550),
+          reverseTransitionDuration: const Duration(milliseconds: 480),
           pageBuilder: (context, animation, secondaryAnimation) {
             return MountainDetailScreen(
               mountain: mountain,
@@ -45,7 +45,6 @@ class _MountainPageState extends State<MountainPage> {
             return child;
           },
         ),
-
       );
 
       if (result != null && mounted) {
