@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:page_transitions/main.dart';
 import 'package:page_transitions/models/mountain_data.dart';
 import 'package:page_transitions/screens/mountain_detail_screen.dart';
+import 'package:page_transitions/screens/zoom_fade_demo/zoom_fade_detail_screen.dart';
 import 'package:page_transitions/transitions/shared_axis_route.dart';
+import 'package:page_transitions/transitions/zoom_fade_route.dart';
 
 class _MockHttpClient extends Fake implements HttpClient {
   @override
@@ -478,5 +480,185 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('PEAKS'), findsOneWidget);
     expect(find.text('Mountain Details'), findsNothing);
+  });
+
+  testWidgets('Design 03 — Zoom & Fade Transition gallery integration and dynamic navigation',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const PageTransitionsApp());
+    await tester.pumpAndSettle();
+
+    // 1. Verify Design 03 card exists on ExploreDesignsScreen
+    expect(find.text('Design 03 — Zoom & Fade Transition'), findsOneWidget);
+    expect(find.text('Design 03 • Motion'), findsOneWidget);
+
+    // 2. Open Design 03 (ZoomFadeExploreScreen)
+    await tester.ensureVisible(find.text('Design 03 — Zoom & Fade Transition'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Design 03 — Zoom & Fade Transition'));
+    await tester.pumpAndSettle();
+
+    // 3. Verify Screen A (ZoomFadeExploreScreen) elements
+    expect(find.text('PEAKS'), findsOneWidget);
+    expect(find.text('Explore'), findsOneWidget);
+    expect(find.text('Discover the world\'s highest mountains.'), findsOneWidget);
+    expect(find.text('Mount Everest'), findsOneWidget);
+    expect(find.text('Explore Mountain'), findsOneWidget);
+    expect(find.text('Other Peaks'), findsOneWidget);
+    expect(find.text('Other Notable Peaks'), findsNothing);
+    expect(find.text('K2'), findsOneWidget);
+    expect(find.text('Kangchenjunga'), findsOneWidget);
+    expect(find.text('Lhotse'), findsOneWidget);
+
+    // Filter row chips and profile icon must not be present
+    expect(find.text('8,000m'), findsNothing);
+    expect(find.byIcon(Icons.person_outline_rounded), findsNothing);
+
+    // 4. Test forward navigation via "Explore Mountain" button (Mount Everest)
+    await tester.tap(find.text('Explore Mountain'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    // 5. Verify Mount Everest details screen
+    expect(find.text('Mountain Details'), findsOneWidget);
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('8,848 m'), findsWidgets);
+    expect(find.text('Himalaya'), findsWidgets);
+    expect(find.text('Expedition Overview'), findsOneWidget);
+    expect(find.text('Back to Explore'), findsNothing);
+
+    // 6. Test reverse navigation via top circular back icon
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpAndSettle();
+
+    // Verify returned to Screen A
+    expect(find.text('PEAKS'), findsOneWidget);
+    expect(find.text('Explore Mountain'), findsOneWidget);
+
+    // 7. Test forward navigation to K2 (verifying dynamic data per mountain)
+    await tester.ensureVisible(find.text('K2'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('K2'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    // Verify K2 details (not hardcoded Everest data)
+    expect(find.text('Mountain Details'), findsOneWidget);
+    expect(find.text('K2'), findsWidgets);
+    expect(find.text('8,611 m'), findsWidgets);
+    expect(find.text('Karakoram'), findsWidgets);
+    expect(find.text('Back to Explore'), findsNothing);
+
+    // 8. Test reverse navigation back to Explore
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpAndSettle();
+
+    expect(find.text('PEAKS'), findsOneWidget);
+  });
+
+  testWidgets('Design 03 — ZoomFadeTransition scale, opacity endpoints and reduced motion',
+      (WidgetTester tester) async {
+    // Test reduced motion
+    await tester.pumpWidget(
+      const MediaQuery(
+        data: MediaQueryData(disableAnimations: true),
+        child: MaterialApp(
+          home: ZoomFadeDetailScreen(mountain: MountainData.everest),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('8,848 m'), findsWidgets);
+  });
+
+  testWidgets('Design 03 — ZoomFadeTransition mathematical scale and opacity endpoints',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    ZoomFadePageRoute(
+                      page: const Scaffold(body: Text('Zoom Destination')),
+                    ),
+                  );
+                },
+                child: const Text('Open Zoom'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open Zoom'));
+    await tester.pump(); // dispatches tap and pushes route
+    await tester.pump(); // builds the route at t=0.0
+
+    // Find ScaleTransition and FadeTransition of ZoomFadeTransition
+    final inScaleFinder = find.byWidgetPredicate(
+      (w) => w is ScaleTransition && w.child is FadeTransition,
+    );
+    final inFadeFinder = find.descendant(
+      of: inScaleFinder,
+      matching: find.byType(FadeTransition),
+    );
+
+    double currentScale() {
+      return tester.widgetList<ScaleTransition>(inScaleFinder).last.scale.value;
+    }
+    double currentOpacity() {
+      return tester.widgetList<FadeTransition>(inFadeFinder).last.opacity.value;
+    }
+
+    // Initial state: primary incoming scale 0.92, opacity 0.0
+    expect(currentScale(), closeTo(0.92, 0.005));
+    expect(currentOpacity(), 0.0);
+
+    // During the subtle 8% delay window (~25ms into the 450ms forward transition)
+    await tester.pump(const Duration(milliseconds: 25));
+    expect(currentScale(), closeTo(0.92, 0.005));
+
+    // 50% transition progress: 225ms (25ms + 200ms)
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(currentScale(), greaterThan(0.92));
+    expect(currentScale(), lessThan(1.00));
+    expect(currentOpacity(), greaterThan(0.0));
+
+    // Finish forward transition: 450ms total
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pumpAndSettle();
+
+    // Final state: scale 1.00, opacity 1.0
+    expect(currentScale(), 1.0);
+    expect(currentOpacity(), 1.0);
+    expect(find.text('Zoom Destination'), findsOneWidget);
+
+    // Reverse transition
+    final nav = tester.state<NavigatorState>(find.byType(Navigator));
+    nav.pop();
+    await tester.pump(); // start reverse
+
+    // Advance 200ms (50% of 400ms reverse)
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(currentScale(), lessThan(1.0));
+    expect(currentScale(), greaterThan(0.92));
+
+    // Finish reverse
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open Zoom'), findsOneWidget);
+    expect(find.text('Zoom Destination'), findsNothing);
   });
 }

@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../widgets/mountain_image_widget.dart';
 import 'mountain_page.dart';
 import 'shared_axis_demo/shared_axis_explore_screen.dart';
+import 'zoom_fade_demo/zoom_fade_explore_screen.dart';
 
 // Transition demos accessible through the Motion Experiments gallery card
 import 'circular_demo_screen.dart';
@@ -80,6 +81,19 @@ class _ExploreDesignsScreenState extends State<ExploreDesignsScreen> {
         accentColor: Color(0xFF7C3AED),
         isAvailable: true,
         destinationPage: SharedAxisExploreScreen(),
+      ),
+
+      // 3. Design 03 — Zoom & Fade Transition
+      const DesignConcept(
+        id: 'zoom-fade-transition',
+        title: 'Design 03 — Zoom & Fade Transition',
+        category: 'Design 03 • Motion',
+        description:
+            'Gently zooms into normal scale while fading in, with a subtly receding outgoing view.',
+        icon: Icons.zoom_in_rounded,
+        accentColor: Color(0xFF7C3AED),
+        isAvailable: true,
+        destinationPage: ZoomFadeExploreScreen(),
       ),
 
       // 3. Interactive Motion Experiments (Hosts the 5 transition demos)
