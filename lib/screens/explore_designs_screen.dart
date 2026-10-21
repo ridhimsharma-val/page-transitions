@@ -5,6 +5,7 @@ import '../widgets/mountain_image_widget.dart';
 import 'mountain_page.dart';
 import 'shared_axis_demo/shared_axis_explore_screen.dart';
 import 'zoom_fade_demo/zoom_fade_explore_screen.dart';
+import 'parallax_demo/parallax_explore_screen.dart';
 
 // Transition demos accessible through the Motion Experiments gallery card
 import 'circular_demo_screen.dart';
@@ -94,6 +95,19 @@ class _ExploreDesignsScreenState extends State<ExploreDesignsScreen> {
         accentColor: Color(0xFF7C3AED),
         isAvailable: true,
         destinationPage: ZoomFadeExploreScreen(),
+      ),
+
+      // 4. Design 04 — Parallax Depth
+      const DesignConcept(
+        id: 'parallax-depth-transition',
+        title: 'Design 04 — Parallax Depth',
+        category: 'Design 04 • Motion',
+        description:
+            'Cinematic multi-layered transition with differential depth speeds across background, mountain landscape, and foreground text.',
+        icon: Icons.layers_rounded,
+        accentColor: Color(0xFF7C3AED),
+        isAvailable: true,
+        destinationPage: ParallaxExploreScreen(),
       ),
 
       // 3. Interactive Motion Experiments (Hosts the 5 transition demos)

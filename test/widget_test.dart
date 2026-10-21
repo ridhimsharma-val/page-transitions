@@ -6,8 +6,10 @@ import 'package:page_transitions/main.dart';
 import 'package:page_transitions/models/mountain_data.dart';
 import 'package:page_transitions/screens/mountain_detail_screen.dart';
 import 'package:page_transitions/screens/zoom_fade_demo/zoom_fade_detail_screen.dart';
+import 'package:page_transitions/screens/parallax_demo/parallax_detail_screen.dart';
 import 'package:page_transitions/transitions/shared_axis_route.dart';
 import 'package:page_transitions/transitions/zoom_fade_route.dart';
+import 'package:page_transitions/transitions/parallax_route.dart';
 
 class _MockHttpClient extends Fake implements HttpClient {
   @override
@@ -660,5 +662,212 @@ void main() {
 
     expect(find.text('Open Zoom'), findsOneWidget);
     expect(find.text('Zoom Destination'), findsNothing);
+  });
+
+  testWidgets('Design 04 — Parallax Depth gallery integration, forward and reverse navigation',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const PageTransitionsApp());
+    await tester.pumpAndSettle();
+
+    // 1. Verify Design 04 card exists on ExploreDesignsScreen
+    expect(find.text('Design 04 — Parallax Depth'), findsOneWidget);
+    expect(find.text('Design 04 • Motion'), findsOneWidget);
+
+    // 2. Open Design 04 (ParallaxExploreScreen)
+    await tester.ensureVisible(find.text('Design 04 — Parallax Depth'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Design 04 — Parallax Depth'));
+    await tester.pumpAndSettle();
+
+    // 3. Verify Screen A (ParallaxExploreScreen) elements
+    expect(find.text('PEAKS'), findsOneWidget);
+    expect(find.text('Explore'), findsOneWidget);
+    expect(find.text('Discover the world\'s highest mountains.'), findsOneWidget);
+    expect(find.text('Mount Everest'), findsOneWidget);
+    expect(find.text('Explore Mountain'), findsOneWidget);
+    expect(find.text('Other Peaks'), findsOneWidget);
+    expect(find.text('K2'), findsOneWidget);
+    expect(find.text('Kangchenjunga'), findsOneWidget);
+    expect(find.text('Lhotse'), findsOneWidget);
+
+    // Filter row chips and profile icon must not be present
+    expect(find.text('8,000m'), findsNothing);
+    expect(find.byIcon(Icons.person_outline_rounded), findsNothing);
+
+    // 4. Test forward navigation via "Explore Mountain" button (Mount Everest)
+    await tester.tap(find.text('Explore Mountain'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 750));
+    await tester.pumpAndSettle();
+
+    // 5. Verify Mount Everest details screen
+    expect(find.text('Mountain Details'), findsOneWidget);
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('8,848 m'), findsWidgets);
+    expect(find.text('Himalaya'), findsWidgets);
+    expect(find.text('Expedition Overview'), findsOneWidget);
+
+    // 6. Test reverse navigation via circular back icon
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    // Verify returned to Screen A
+    expect(find.text('PEAKS'), findsOneWidget);
+    expect(find.text('Explore Mountain'), findsOneWidget);
+
+    // 7. Test forward navigation to K2
+    await tester.ensureVisible(find.text('K2'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('K2'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 750));
+    await tester.pumpAndSettle();
+
+    // Verify K2 details
+    expect(find.text('Mountain Details'), findsOneWidget);
+    expect(find.text('K2'), findsWidgets);
+    expect(find.text('8,611 m'), findsWidgets);
+    expect(find.text('Karakoram'), findsWidgets);
+
+    // 8. Test reverse navigation back to Explore
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    expect(find.text('PEAKS'), findsOneWidget);
+
+    // 9. Test forward navigation to Kangchenjunga
+    await tester.ensureVisible(find.text('Kangchenjunga'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kangchenjunga'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 750));
+    await tester.pumpAndSettle();
+
+    // Verify Kangchenjunga details
+    expect(find.text('Mountain Details'), findsOneWidget);
+    expect(find.text('Kangchenjunga'), findsWidgets);
+    expect(find.text('8,586 m'), findsWidgets);
+    expect(find.text('Himalaya'), findsWidgets);
+
+    // Reverse back to Explore
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    expect(find.text('PEAKS'), findsOneWidget);
+  });
+
+  testWidgets('Design 04 — ParallaxDetailScreen multi-layered differential motion and reduced motion',
+      (WidgetTester tester) async {
+    // 1. Test reduced motion accessibility
+    await tester.pumpWidget(
+      const MediaQuery(
+        data: MediaQueryData(disableAnimations: true),
+        child: MaterialApp(
+          home: ParallaxDetailScreen(mountain: MountainData.everest),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('8,848 m'), findsWidgets);
+
+    // 2. Test route transition duration properties
+    final route = ParallaxPageRoute(
+      page: const ParallaxDetailScreen(mountain: MountainData.everest),
+    );
+    expect(route.transitionDuration, const Duration(milliseconds: 700));
+    expect(route.reverseTransitionDuration, const Duration(milliseconds: 550));
+  });
+
+  testWidgets('Design 04 — Trace animation values and verify no missing content at test points',
+      (WidgetTester tester) async {
+    late AnimationController controller;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            return Builder(
+              builder: (ctx) {
+                return Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () {
+                      final tickerProvider = Navigator.of(ctx);
+                      controller = AnimationController(
+                        vsync: tickerProvider,
+                        duration: const Duration(milliseconds: 700),
+                        reverseDuration: const Duration(milliseconds: 550),
+                      );
+                      Navigator.of(ctx).push(
+                        MaterialPageRoute(
+                          builder: (_) => ParallaxDetailScreen(
+                            mountain: MountainData.everest,
+                            animation: controller,
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('Open'),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    // Trace at 0.12, 0.22, 0.50, 0.85, 0.92, 1.0
+    controller.value = 0.12;
+    await tester.pump();
+    // At t=0.12, Mount Everest title and Expedition Overview must be rendered and visible
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('Expedition Overview'), findsOneWidget);
+
+    controller.value = 0.22;
+    await tester.pump();
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('Expedition Overview'), findsOneWidget);
+
+    controller.value = 0.50;
+    await tester.pump();
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('Expedition Overview'), findsOneWidget);
+
+    controller.value = 0.85;
+    await tester.pump();
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('Expedition Overview'), findsOneWidget);
+
+    controller.value = 0.92;
+    await tester.pump();
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('Expedition Overview'), findsOneWidget);
+
+    controller.value = 1.0;
+    await tester.pump();
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('Expedition Overview'), findsOneWidget);
+    expect(find.text('8,848 m'), findsWidgets);
+
+    // Test reverse at 0.50, 0.22, 0.12
+    controller.reverse();
+    controller.value = 0.22;
+    await tester.pump();
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('Expedition Overview'), findsOneWidget);
+
+    controller.value = 0.12;
+    await tester.pump();
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('Expedition Overview'), findsOneWidget);
   });
 }
