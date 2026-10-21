@@ -3,6 +3,7 @@ import '../models/mountain_data.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mountain_image_widget.dart';
 import 'mountain_page.dart';
+import 'shared_axis_demo/shared_axis_explore_screen.dart';
 
 // Transition demos accessible through the Motion Experiments gallery card
 import 'circular_demo_screen.dart';
@@ -68,7 +69,20 @@ class _ExploreDesignsScreenState extends State<ExploreDesignsScreen> {
         destinationPage: const MountainPage(),
       ),
 
-      // 2. Interactive Motion Experiments (Hosts the 5 transition demos)
+      // 2. Design 02 — Horizontal Shared-Axis Transition
+      const DesignConcept(
+        id: 'shared-axis-transition',
+        title: 'Shared-Axis Transition',
+        category: 'Design 02 • Motion',
+        description:
+            'Coordinated horizontal movement with synchronized slide, fade, and subtle scaling between routes.',
+        icon: Icons.compare_arrows_rounded,
+        accentColor: Color(0xFF7C3AED),
+        isAvailable: true,
+        destinationPage: SharedAxisExploreScreen(),
+      ),
+
+      // 3. Interactive Motion Experiments (Hosts the 5 transition demos)
       const DesignConcept(
         id: 'motion-lab',
         title: 'Interactive Motion Experiments',

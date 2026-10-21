@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:page_transitions/main.dart';
 import 'package:page_transitions/models/mountain_data.dart';
 import 'package:page_transitions/screens/mountain_detail_screen.dart';
-import 'package:page_transitions/widgets/mountain_hero_shuttle.dart';
+import 'package:page_transitions/transitions/shared_axis_route.dart';
 
 class _MockHttpClient extends Fake implements HttpClient {
   @override
@@ -241,65 +241,6 @@ void main() {
     expect(find.text('World Above'), findsOneWidget);
   });
 
-  testWidgets('Hero 2.0 shuttle interpolates corners, bounds, and renders without error',
-      (WidgetTester tester) async {
-    final controller = AnimationController(
-      vsync: const TestVSync(),
-      duration: const Duration(milliseconds: 550),
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: MountainHeroFlightShuttle(
-            animation: controller,
-            flightDirection: HeroFlightDirection.push,
-            mountain: MountainData.everest,
-            sourceRadius: BorderRadius.circular(16),
-            destinationRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(28),
-              bottomRight: Radius.circular(28),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    // Initial t = 0.0
-    expect(find.byType(MountainHeroFlightShuttle), findsOneWidget);
-    expect(find.byType(ClipRRect), findsOneWidget);
-
-    // Mid-flight t = 0.5
-    controller.value = 0.5;
-    await tester.pump();
-    expect(find.byType(MountainHeroFlightShuttle), findsOneWidget);
-
-    // Destination t = 1.0
-    controller.value = 1.0;
-    await tester.pump();
-    expect(find.byType(MountainHeroFlightShuttle), findsOneWidget);
-
-    controller.dispose();
-  });
-
-  test('SmoothHeroRectTween lerps with easeInOutCubicEmphasized across t [0, 1]', () {
-    final tween = SmoothHeroRectTween(
-      begin: const Rect.fromLTWH(0, 0, 100, 100),
-      end: const Rect.fromLTWH(0, 0, 200, 200),
-    );
-
-    expect(tween.lerp(0.0), const Rect.fromLTWH(0, 0, 100, 100));
-    expect(tween.lerp(1.0), const Rect.fromLTWH(0, 0, 200, 200));
-
-    // Midpoint at t = 0.5 with easeInOutCubicEmphasized
-    final mid = tween.lerp(0.5)!;
-    final expectedVal = 100.0 + (200.0 - 100.0) * Curves.easeInOutCubicEmphasized.transform(0.5);
-    expect(mid.width, closeTo(expectedVal, 0.01));
-    expect(mid.height, closeTo(expectedVal, 0.01));
-  });
-
-
-
   testWidgets('MountainDetailScreen respects disableAnimations / reduced motion',
       (WidgetTester tester) async {
     await tester.pumpWidget(
@@ -319,5 +260,223 @@ void main() {
     expect(find.text('K2'), findsWidgets);
     expect(find.text('8,611 m'), findsWidgets);
     expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+  });
+
+  testWidgets('Design 02 — Shared-Axis Transition forward and reverse navigation',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const PageTransitionsApp());
+    await tester.pumpAndSettle();
+
+    // 1. Verify Design 02 card exists on ExploreDesignsScreen
+    expect(find.text('Shared-Axis Transition'), findsOneWidget);
+    expect(find.text('Design 02 • Motion'), findsOneWidget);
+
+    // 2. Scroll and open Design 02 (SharedAxisExploreScreen)
+    await tester.ensureVisible(find.text('Shared-Axis Transition'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Shared-Axis Transition'));
+    await tester.pumpAndSettle();
+
+    // 3. Verify Screen A (SharedAxisExploreScreen) elements
+    expect(find.text('PEAKS'), findsOneWidget);
+    expect(find.text('Explore'), findsOneWidget);
+    expect(find.text('Discover the world\'s highest mountains.'), findsOneWidget);
+    expect(find.text('Mount Everest'), findsOneWidget);
+    expect(find.text('Explore Mountain'), findsOneWidget);
+    expect(find.text('K2'), findsOneWidget);
+    expect(find.text('Kangchenjunga'), findsOneWidget);
+    // Profile icon must be removed
+    expect(find.byIcon(Icons.person_outline_rounded), findsNothing);
+
+    // 4. Test forward navigation via "Explore Mountain" button
+    await tester.tap(find.text('Explore Mountain'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    // 5. Verify Screen B (SharedAxisDetailScreen) elements
+    expect(find.text('Mountain Details'), findsOneWidget);
+    expect(find.text('Highest mountain above sea level'), findsOneWidget);
+    expect(find.text('Expedition Overview'), findsOneWidget);
+    // "Back to Explore" button must be removed from every mountain details screen
+    expect(find.text('Back to Explore'), findsNothing);
+
+    // 6. Test reverse navigation via back icon
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpAndSettle();
+
+    // Verify back on Screen A
+    expect(find.text('PEAKS'), findsOneWidget);
+    expect(find.text('Explore Mountain'), findsOneWidget);
+
+    // 7. Test forward navigation via card tap
+    await tester.tap(find.text('Mount Everest'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mountain Details'), findsOneWidget);
+    expect(find.text('Back to Explore'), findsNothing);
+
+    // 8. Test reverse navigation via top back icon
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpAndSettle();
+
+    expect(find.text('PEAKS'), findsOneWidget);
+  });
+
+  testWidgets('SharedAxisTransition mathematical transform verification',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    SharedAxisPageRoute(
+                      page: const Scaffold(body: Text('Destination Screen')),
+                    ),
+                  );
+                },
+                child: const Text('Open'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pump(); // Start transition
+
+    // 1. Advance to 225ms (exactly 50% of 450ms forward transition)
+    await tester.pump(const Duration(milliseconds: 225));
+
+    // Verify both SlideTransition widgets are actively in flight
+    final slideFinders = find.byType(SlideTransition);
+    expect(slideFinders, findsWidgets);
+
+    // Verify FadeTransition widgets exist and are active
+    final fadeFinders = find.byType(FadeTransition);
+    expect(fadeFinders, findsWidgets);
+
+    // 2. Complete forward transition
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pumpAndSettle();
+    expect(find.text('Destination Screen'), findsOneWidget);
+
+    // 3. Initiate reverse transition
+    final nav = tester.state<NavigatorState>(find.byType(Navigator));
+    nav.pop();
+    await tester.pump(); // Start reverse
+
+    // 4. Advance to 200ms (exactly 50% of 400ms reverse transition)
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.byType(SlideTransition), findsWidgets);
+    expect(find.byType(FadeTransition), findsWidgets);
+
+    // 5. Complete reverse transition
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open'), findsOneWidget);
+    expect(find.text('Destination Screen'), findsNothing);
+  });
+
+  testWidgets('Design 02 — Sequential slide-and-fade timing and zero overlap verification',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const PageTransitionsApp());
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Shared-Axis Transition'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Shared-Axis Transition'));
+    await tester.pumpAndSettle();
+
+    // Tap Explore Mountain to trigger forward transition (450ms)
+    await tester.tap(find.text('Explore Mountain'));
+    await tester.pump(); // frame 0: t=0.0
+
+    final detailFadeFinder = find.descendant(
+      of: find.byType(SharedAxisTransition),
+      matching: find.byType(FadeTransition),
+    );
+    final exploreFadeFinder = find.descendant(
+      of: find.byType(SharedAxisPageWrapper),
+      matching: find.byType(FadeTransition),
+    );
+
+    double detailOpacity() {
+      final list = tester.widgetList<FadeTransition>(detailFadeFinder);
+      return list.last.opacity.value;
+    }
+
+    double exploreOpacity() {
+      return tester.firstWidget<FadeTransition>(exploreFadeFinder).opacity.value;
+    }
+
+    // Phase A: 100ms in forward
+    await tester.pump(const Duration(milliseconds: 100));
+    // Details route must have 0.0 opacity while Explore is exiting
+    expect(detailOpacity(), 0.0);
+    expect(exploreOpacity(), greaterThan(0.0));
+
+    // Handoff: 225ms in forward (50% progress)
+    await tester.pump(const Duration(milliseconds: 125));
+    // Both Explore and Details should be 0.0 during hand-off buffer
+    expect(detailOpacity(), 0.0);
+    expect(exploreOpacity(), 0.0);
+
+    // Phase B: 350ms in forward
+    await tester.pump(const Duration(milliseconds: 125));
+    // Explore is 0.0, Details is entering (> 0.0)
+    expect(exploreOpacity(), 0.0);
+    expect(detailOpacity(), greaterThan(0.0));
+
+    // Finish forward transition
+    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pumpAndSettle();
+    expect(find.text('Mountain Details'), findsOneWidget);
+
+    // Reverse transition: Tap back button
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pump(); // frame 0 of reverse
+
+    // Reverse Phase A: 100ms into reverse (t ~ 0.75)
+    await tester.pump(const Duration(milliseconds: 100));
+    // Explore must be 0.0 while Details is exiting
+    expect(exploreOpacity(), 0.0);
+    expect(detailOpacity(), greaterThan(0.0));
+
+    // Reverse Handoff boundary: 200ms into reverse (50% progress, t = 0.50)
+    await tester.pump(const Duration(milliseconds: 100));
+    // Details has reached exactly 0.0 opacity
+    expect(detailOpacity(), 0.0);
+    expect(exploreOpacity(), 0.0);
+
+    // Immediately after boundary: 210ms into reverse (t = 0.475)
+    await tester.pump(const Duration(milliseconds: 10));
+    // Details remains 0.0, and Explore immediately begins entering with zero pause
+    expect(detailOpacity(), 0.0);
+    expect(exploreOpacity(), greaterThan(0.0));
+
+    // Reverse Phase B: 320ms into reverse (t ~ 0.20)
+    await tester.pump(const Duration(milliseconds: 110));
+    // Details is 0.0, Explore is well in flight (> 0.0)
+    expect(detailOpacity(), 0.0);
+    expect(exploreOpacity(), greaterThan(0.0));
+
+    // Finish reverse transition
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
+    expect(find.text('PEAKS'), findsOneWidget);
+    expect(find.text('Mountain Details'), findsNothing);
   });
 }

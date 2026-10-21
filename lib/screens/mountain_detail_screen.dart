@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/mountain_data.dart';
-import '../widgets/mountain_hero_shuttle.dart';
 import '../widgets/mountain_image_widget.dart';
 
 class MountainDetailScreen extends StatefulWidget {
@@ -21,6 +20,7 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _fallbackController;
 
+  late Animation<double> _bgOpacity;
   late Animation<double> _sheetOpacity;
   late Animation<Offset> _sheetSlide;
 
@@ -71,6 +71,7 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
     final disableAnimations = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     if (disableAnimations) {
+      _bgOpacity = const AlwaysStoppedAnimation(1.0);
       _sheetOpacity = const AlwaysStoppedAnimation(1.0);
       _sheetSlide = const AlwaysStoppedAnimation(Offset.zero);
       _titleOpacity = const AlwaysStoppedAnimation(1.0);
@@ -84,6 +85,13 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
       _gradientOpacity = const AlwaysStoppedAnimation(1.0);
       return;
     }
+
+    // Detail background: stays transparent during hero flight, settles smoothly into solid tone
+    _bgOpacity = CurvedAnimation(
+      parent: parent,
+      curve: const Interval(0.60, 0.95, curve: Curves.easeOutCubic),
+      reverseCurve: const Interval(0.65, 0.95, curve: Curves.easeInCubic),
+    );
 
     // Content Sheet Container: smooth unified lift tracked with hero flight
     _sheetOpacity = CurvedAnimation(
@@ -122,7 +130,12 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
       reverseCurve: const Interval(0.0, 0.45, curve: Curves.easeInCubic),
     ));
 
-    _gradientOpacity = const AlwaysStoppedAnimation(1.0);
+    // Stationary header gradient: reveals only when mountain photo docks in destination
+    _gradientOpacity = CurvedAnimation(
+      parent: parent,
+      curve: const Interval(0.65, 0.95, curve: Curves.easeOutCubic),
+      reverseCurve: const Interval(0.70, 0.95, curve: Curves.easeInCubic),
+    );
   }
 
   @override
@@ -139,18 +152,27 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {},
       child: Scaffold(
-        backgroundColor: const Color(0xFFF3F6FC),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Stack(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: FadeTransition(
+                opacity: _bgOpacity,
+                child: const ColoredBox(
+                  color: Color(0xFFF3F6FC),
+                ),
+              ),
+            ),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Stack(
               children: [
                 SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Column(
                     children: [
                       // 1. Large Hero Mountain Photograph at Top
-                      // Uses SmoothHeroRectTween & MountainHeroFlightShuttle for cinematic continuity
                       SizedBox(
                         height: 380,
                         width: double.infinity,
@@ -159,29 +181,6 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
                           children: [
                             Hero(
                               tag: 'mountain-hero-image-${mountain.id}',
-                              createRectTween: (begin, end) =>
-                                  SmoothHeroRectTween(begin: begin, end: end),
-                              placeholderBuilder: (context, heroSize, child) {
-                                return SizedBox.fromSize(size: heroSize);
-                              },
-                              flightShuttleBuilder: (
-                                flightContext,
-                                animation,
-                                flightDirection,
-                                fromHeroContext,
-                                toHeroContext,
-                              ) {
-                                return MountainHeroFlightShuttle(
-                                  animation: animation,
-                                  flightDirection: flightDirection,
-                                  mountain: mountain,
-                                  sourceRadius: BorderRadius.circular(16),
-                                  destinationRadius: const BorderRadius.only(
-                                    bottomLeft: Radius.circular(28),
-                                    bottomRight: Radius.circular(28),
-                                  ),
-                                );
-                              },
                               child: ClipRRect(
                                 borderRadius: const BorderRadius.only(
                                   bottomLeft: Radius.circular(28),
@@ -457,7 +456,9 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
             ),
           ),
         ),
-      ),
-    );
+      ],
+    ),
+  ),
+);
   }
 }

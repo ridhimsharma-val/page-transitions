@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/mountain_data.dart';
-import '../widgets/mountain_hero_shuttle.dart';
 import '../widgets/mountain_image_widget.dart';
 import 'mountain_detail_screen.dart';
 
@@ -42,7 +41,14 @@ class _MountainPageState extends State<MountainPage> {
             );
           },
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return child;
+            return FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: const Interval(0.20, 0.85, curve: Curves.easeInOut),
+                reverseCurve: const Interval(0.25, 0.85, curve: Curves.easeInOut),
+              ),
+              child: child,
+            );
           },
         ),
       );
@@ -327,29 +333,6 @@ class _MountainPageState extends State<MountainPage> {
                 children: [
                   Hero(
                     tag: 'mountain-hero-image-${mountain.id}',
-                    createRectTween: (begin, end) =>
-                        SmoothHeroRectTween(begin: begin, end: end),
-                    placeholderBuilder: (context, heroSize, child) {
-                      return SizedBox.fromSize(size: heroSize);
-                    },
-                    flightShuttleBuilder: (
-                      flightContext,
-                      animation,
-                      flightDirection,
-                      fromHeroContext,
-                      toHeroContext,
-                    ) {
-                      return MountainHeroFlightShuttle(
-                        animation: animation,
-                        flightDirection: flightDirection,
-                        mountain: mountain,
-                        sourceRadius: BorderRadius.circular(16),
-                        destinationRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(28),
-                          bottomRight: Radius.circular(28),
-                        ),
-                      );
-                    },
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: SizedBox(
