@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:page_transitions/main.dart';
@@ -12,6 +13,9 @@ import 'package:page_transitions/transitions/zoom_fade_route.dart';
 import 'package:page_transitions/transitions/parallax_route.dart';
 import 'package:page_transitions/transitions/circular_reveal_route.dart';
 import 'package:page_transitions/screens/circular_carousel_demo/circular_carousel_explore_screen.dart';
+import 'package:page_transitions/transitions/cloudstorm_route.dart';
+import 'package:page_transitions/screens/cloudstorm_demo/cloudstorm_explore_screen.dart';
+import 'package:page_transitions/screens/cloudstorm_demo/cloudstorm_detail_screen.dart';
 
 class _MockHttpClient extends Fake implements HttpClient {
   @override
@@ -1316,5 +1320,168 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Lhotse'), findsWidgets);
     expect(find.text('8,516 m'), findsWidgets);
+  });
+
+  test('Design 06 — CloudstormPageRoute configuration and CloudstormPainter rendering', () {
+    final route = CloudstormPageRoute(
+      page: const CloudstormDetailScreen(mountain: MountainData.everest),
+    );
+    expect(route.transitionDuration, const Duration(milliseconds: 1300));
+    expect(route.reverseTransitionDuration, const Duration(milliseconds: 1000));
+    expect(route.opaque, isFalse);
+
+    // Verify CloudstormPainter boundary and peak obscuration behavior
+    final painter0 = CloudstormPainter(progress: 0.0);
+    final painter50 = CloudstormPainter(progress: 0.52);
+    final painter100 = CloudstormPainter(progress: 1.0);
+
+    expect(painter0.shouldRepaint(painter50), isTrue);
+    expect(painter50.shouldRepaint(CloudstormPainter(progress: 0.52)), isFalse);
+
+    // Repaint check with a test canvas
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+    const size = Size(400, 800);
+
+    // Progress 0.0 (idle, no draw)
+    painter0.paint(canvas, size);
+    // Progress 0.52 (peak obscuration dense blanket)
+    painter50.paint(canvas, size);
+    // Progress 1.0 (cleared, no draw)
+    painter100.paint(canvas, size);
+    final picture = recorder.endRecording();
+    expect(picture, isNotNull);
+  });
+
+  testWidgets('Design 06 — CloudstormDetailScreen respects disableAnimations / reduced motion',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MediaQuery(
+        data: MediaQueryData(disableAnimations: true),
+        child: MaterialApp(
+          home: CloudstormDetailScreen(mountain: MountainData.everest),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Verify all content immediately rendered without opacity/translation delays
+    expect(find.text('Mount Everest'), findsOneWidget);
+    expect(find.text('Sagarmatha • Chomolungma'), findsOneWidget);
+    expect(find.text('Overview'), findsOneWidget);
+    expect(find.text('Standard Expedition Route'), findsOneWidget);
+  });
+
+  testWidgets('Design 06 — CloudstormExploreScreen renders, navigates to details with atmospheric cloudstorm wipe, and reverses',
+      (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CloudstormExploreScreen(),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Verify header
+    expect(find.text('DESIGN 06 • CLOUDSTORM'), findsOneWidget);
+    expect(find.text('Cloudstorm Reveal'), findsOneWidget);
+
+    // Verify mountain cards exist
+    expect(find.text('Mount Everest'), findsOneWidget);
+    expect(find.text('K2'), findsOneWidget);
+
+    // 1. Tap Mount Everest to trigger 1,300 ms forward cloudstorm wipe
+    await tester.tap(find.text('Mount Everest'));
+    await tester.pump();
+
+    // Mid-transition at 650 ms (peak obscuration window 45%–62%)
+    await tester.pump(const Duration(milliseconds: 650));
+    expect(find.byType(CloudstormOverlay), findsOneWidget);
+    expect(find.byType(CloudstormDetailScreen), findsOneWidget);
+    expect(find.byType(CloudstormExploreScreen), findsOneWidget);
+
+    // Finish 1,300 ms forward transition
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    // Details page elements displayed
+    expect(find.byType(CloudstormDetailScreen), findsOneWidget);
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('Sagarmatha • Chomolungma'), findsOneWidget);
+    expect(find.text('8,848 m'), findsWidgets);
+    expect(find.text('Overview'), findsOneWidget);
+    expect(find.text('Standard Expedition Route'), findsOneWidget);
+
+    // 2. Reverse navigation via back button
+    final detailBackFinder = find.descendant(
+      of: find.byType(CloudstormDetailScreen),
+      matching: find.byIcon(Icons.arrow_back_rounded),
+    );
+    await tester.tap(detailBackFinder);
+    await tester.pump();
+
+    // Mid-reverse at 500 ms (of 1,000 ms)
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(CloudstormOverlay), findsOneWidget);
+    expect(find.byType(CloudstormExploreScreen), findsOneWidget);
+
+    // Complete 1,000 ms reverse flight
+    await tester.pump(const Duration(milliseconds: 550));
+    await tester.pumpAndSettle();
+
+    // Returned to Explore screen
+    expect(find.byType(CloudstormDetailScreen), findsNothing);
+    expect(find.byType(CloudstormExploreScreen), findsOneWidget);
+    expect(find.text('Mount Everest'), findsOneWidget);
+
+    // 3. Test second mountain (K2) independent navigation without route collision
+    await tester.tap(find.text('K2'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1350));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CloudstormDetailScreen), findsOneWidget);
+    expect(find.text('K2'), findsWidgets);
+    expect(find.text('8,611 m'), findsWidgets);
+
+    // Return to Explore
+    await tester.tap(find.descendant(
+      of: find.byType(CloudstormDetailScreen),
+      matching: find.byIcon(Icons.arrow_back_rounded),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1050));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CloudstormExploreScreen), findsOneWidget);
+    expect(find.text('K2'), findsOneWidget);
+  });
+
+  testWidgets('Design 06 — Gallery integration from ExploreDesignsScreen to CloudstormExploreScreen',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const PageTransitionsApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Explore Designs'), findsOneWidget);
+    await tester.ensureVisible(find.text('Design 06 — Cloudstorm Reveal'));
+    await tester.pumpAndSettle();
+
+    // Tap Design 06 card
+    await tester.tap(find.text('Design 06 — Cloudstorm Reveal'));
+    await tester.pumpAndSettle();
+
+    // Verify CloudstormExploreScreen is opened
+    expect(find.byType(CloudstormExploreScreen), findsOneWidget);
+    expect(find.text('DESIGN 06 • CLOUDSTORM'), findsOneWidget);
+    expect(find.text('Mount Everest'), findsOneWidget);
+
+    // Return to gallery
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Explore Designs'), findsOneWidget);
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../screens/mountain_page.dart';
 import '../screens/circular_carousel_demo/circular_carousel_explore_screen.dart';
+import '../screens/cloudstorm_demo/cloudstorm_explore_screen.dart';
 
 /// Registry entry defining a self-contained UI design in the Page Transitions Lab gallery.
 /// To register a new independent design, simply add a new [DesignEntry] to [DesignRegistry.entries].
@@ -68,6 +69,19 @@ class DesignRegistry {
       accentColor: const Color(0xFF7C3AED),
       isAvailable: true,
       builder: (context) => const CircularCarouselExploreScreen(),
+    ),
+
+    // Design 06 — Cloudstorm Reveal
+    DesignEntry(
+      id: 'cloudstorm-reveal',
+      title: 'Design 06 — Cloudstorm Reveal',
+      category: 'Design 06 • Motion',
+      description:
+          'Atmospheric mountain transition where a sweeping Himalayan cloud bank blankets the screen to reveal the details scene.',
+      icon: Icons.cloud_rounded,
+      accentColor: const Color(0xFF7C3AED),
+      isAvailable: true,
+      builder: (context) => const CloudstormExploreScreen(),
     ),
 
     // 3. Architectural Typography Studio (Future concept)

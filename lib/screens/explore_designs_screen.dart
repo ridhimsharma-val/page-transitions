@@ -7,6 +7,7 @@ import 'shared_axis_demo/shared_axis_explore_screen.dart';
 import 'zoom_fade_demo/zoom_fade_explore_screen.dart';
 import 'parallax_demo/parallax_explore_screen.dart';
 import 'circular_carousel_demo/circular_carousel_explore_screen.dart';
+import 'cloudstorm_demo/cloudstorm_explore_screen.dart';
 
 // Transition demos accessible through the Motion Experiments gallery card
 import 'circular_demo_screen.dart';
@@ -122,6 +123,19 @@ class _ExploreDesignsScreenState extends State<ExploreDesignsScreen> {
         accentColor: Color(0xFF7C3AED),
         isAvailable: true,
         destinationPage: CircularCarouselExploreScreen(),
+      ),
+
+      // 6. Design 06 — Cloudstorm Reveal
+      const DesignConcept(
+        id: 'cloudstorm-reveal',
+        title: 'Design 06 — Cloudstorm Reveal',
+        category: 'Design 06 • Motion',
+        description:
+            'Atmospheric mountain transition where a sweeping Himalayan cloud bank blankets the screen to reveal the details scene.',
+        icon: Icons.cloud_rounded,
+        accentColor: Color(0xFF7C3AED),
+        isAvailable: true,
+        destinationPage: CloudstormExploreScreen(),
       ),
 
       // 3. Interactive Motion Experiments (Hosts the 5 transition demos)
