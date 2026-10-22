@@ -10,6 +10,8 @@ import 'package:page_transitions/screens/parallax_demo/parallax_detail_screen.da
 import 'package:page_transitions/transitions/shared_axis_route.dart';
 import 'package:page_transitions/transitions/zoom_fade_route.dart';
 import 'package:page_transitions/transitions/parallax_route.dart';
+import 'package:page_transitions/transitions/circular_reveal_route.dart';
+import 'package:page_transitions/screens/circular_carousel_demo/circular_carousel_explore_screen.dart';
 
 class _MockHttpClient extends Fake implements HttpClient {
   @override
@@ -962,5 +964,186 @@ void main() {
         )
         .opacity;
     expect(photoOpacityReverse0, 0.0);
+  });
+
+  test('Design 05 — CircularRevealClipper geometric calculation and safety margin', () {
+    const size = Size(400, 800);
+    const origin = Offset(200, 400);
+
+    final clipper = CircularRevealClipper(
+      progress: 0.0,
+      origin: origin,
+    );
+    final emptyPath = clipper.getClip(size);
+    expect(emptyPath.getBounds().isEmpty, isTrue);
+
+    // Mid-progress
+    final midClipper = CircularRevealClipper(
+      progress: 0.5,
+      origin: origin,
+    );
+    final midPath = midClipper.getClip(size);
+    final midBounds = midPath.getBounds();
+    expect(midBounds.isEmpty, isFalse);
+    expect(midBounds.center.dx, closeTo(200, 1.0));
+    expect(midBounds.center.dy, closeTo(400, 1.0));
+
+    // Full progress: bounds cover whole viewport (0, 0, 400, 800)
+    final fullClipper = CircularRevealClipper(
+      progress: 1.0,
+      origin: origin,
+    );
+    final fullBounds = fullClipper.getClip(size).getBounds();
+    expect(fullBounds.left, 0.0);
+    expect(fullBounds.top, 0.0);
+    expect(fullBounds.right, 400.0);
+    expect(fullBounds.bottom, 800.0);
+  });
+
+  test('Design 05 — CircularRevealPageRoute configuration properties', () {
+    final route = CircularRevealPageRoute(
+      page: const MountainDetailScreen(mountain: MountainData.everest),
+    );
+    expect(route.transitionDuration, const Duration(milliseconds: 650));
+    expect(route.reverseTransitionDuration, const Duration(milliseconds: 500));
+    expect(route.opaque, isFalse);
+  });
+
+  testWidgets('Design 05 — CircularCarouselExploreScreen renders, responsive sizing, and swipe',
+      (WidgetTester tester) async {
+    // 1. Test normal viewport
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CircularCarouselExploreScreen(),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Verify initial active mountain is Mount Everest
+    expect(find.text('DESIGN 05 • CIRCULAR CAROUSEL'), findsOneWidget);
+    expect(find.text('Explore Peaks'), findsOneWidget);
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('8,848.86 m'), findsWidgets);
+
+    // 2. Swipe left to navigate to K2
+    await tester.drag(find.byType(PageView), const Offset(-250, 0));
+    await tester.pumpAndSettle();
+
+    // Verify selection changed to K2
+    expect(find.text('K2'), findsWidgets);
+    expect(find.text('8,611 m'), findsWidgets);
+
+    // 3. Test responsive layout on narrow width (320px) without overflow
+    await tester.binding.setSurfaceSize(const Size(320, 600));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+
+    // 4. Test responsive layout on wide tablet width (800px) without overflow
+    await tester.binding.setSurfaceSize(const Size(800, 1000));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Design 05 — Circular reveal forward, details inspection, and reverse restoration',
+      (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CircularCarouselExploreScreen(),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // 1. Tap selected card (Mount Everest) to trigger circular reveal
+    await tester.tap(find.text('Mount Everest').first);
+    await tester.pump();
+
+    // During transition at 325ms (halfway)
+    await tester.pump(const Duration(milliseconds: 325));
+    // Verify both screens exist in tree during reveal
+    expect(find.byType(MountainDetailScreen), findsOneWidget);
+    expect(find.byType(CircularCarouselExploreScreen), findsOneWidget);
+
+    // Complete forward reveal transition (650ms total)
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    // Verify MountainDetailScreen is displayed for Mount Everest
+    expect(find.byType(MountainDetailScreen), findsOneWidget);
+    expect(find.text('Mount Everest'), findsWidgets);
+
+    // 2. Reverse navigation via back button
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pump();
+
+    // Halfway reverse transition (250ms of 500ms)
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.byType(CircularCarouselExploreScreen), findsOneWidget);
+
+    // Complete reverse transition
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    // Verify returned to Explore screen and Mount Everest is still selected
+    expect(find.byType(MountainDetailScreen), findsNothing);
+    expect(find.text('Explore Peaks'), findsOneWidget);
+    expect(find.text('Mount Everest'), findsWidgets);
+
+    // 3. Test second open-and-back cycle (K2)
+    await tester.drag(find.byType(PageView), const Offset(-250, 0));
+    await tester.pumpAndSettle();
+
+    // Tap Details action button for K2
+    await tester.tap(find.text('Details'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    // Verify K2 details
+    expect(find.byType(MountainDetailScreen), findsOneWidget);
+    expect(find.text('K2'), findsWidgets);
+
+    // Pop back
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 550));
+    await tester.pumpAndSettle();
+
+    // Verify K2 remains the active mountain upon return
+    expect(find.byType(CircularCarouselExploreScreen), findsOneWidget);
+    expect(find.text('K2'), findsWidgets);
+  });
+
+  testWidgets('Design 05 — Gallery integration from ExploreDesignsScreen to CircularCarouselExploreScreen',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const PageTransitionsApp());
+    await tester.pumpAndSettle();
+
+    // Verify Design 05 card is visible and scroll to it
+    expect(find.text('Explore Designs'), findsOneWidget);
+    await tester.ensureVisible(find.text('Design 05 — Circular Carousel'));
+    await tester.pumpAndSettle();
+
+    // Tap Design 05 card to open CircularCarouselExploreScreen
+    await tester.tap(find.text('Design 05 — Circular Carousel'));
+    await tester.pumpAndSettle();
+
+    // Verify CircularCarouselExploreScreen is opened
+    expect(find.byType(CircularCarouselExploreScreen), findsOneWidget);
+    expect(find.text('Explore Peaks'), findsOneWidget);
+    expect(find.text('Mount Everest'), findsWidgets);
+
+    // Tap back button to return to gallery
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Explore Designs'), findsOneWidget);
   });
 }

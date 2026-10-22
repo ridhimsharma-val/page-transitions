@@ -3,27 +3,43 @@ import 'package:flutter/material.dart';
 
 /// Custom PageRouteBuilder that creates an expanding circular reveal transition
 /// originating from a specific anchor point (or screen center if omitted).
+///
+/// Configured for Design 05 with:
+/// - Forward duration: 650 ms, Curve: Curves.easeOutCubic
+/// - Reverse duration: 500 ms, Curve: Curves.easeInOutCubic
+/// - Non-opaque route (`opaque: false`) allowing the underlying Explore screen
+///   to remain visible outside the circular aperture during the transition.
+/// - Circular clipping starting at ~1px expanding to farthest corner + 2px safety margin.
 class CircularRevealPageRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
   final Offset? origin;
-  final Duration transitionDurationOverride;
+  final Duration? transitionDurationOverride;
+  final Duration? reverseTransitionDurationOverride;
+  final Curve curve;
+  final Curve reverseCurve;
+  final bool showRing;
 
   CircularRevealPageRoute({
     required this.page,
     this.origin,
-    this.transitionDurationOverride = const Duration(milliseconds: 700),
+    this.transitionDurationOverride,
+    this.reverseTransitionDurationOverride,
+    this.curve = Curves.easeOutCubic,
+    this.reverseCurve = Curves.easeInOutCubic,
+    this.showRing = false,
+    super.opaque = false,
     super.settings,
   }) : super(
           pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionDuration: transitionDurationOverride,
-          reverseTransitionDuration: Duration(
-            milliseconds: (transitionDurationOverride.inMilliseconds * 0.85).round(),
-          ),
+          transitionDuration:
+              transitionDurationOverride ?? const Duration(milliseconds: 650),
+          reverseTransitionDuration: reverseTransitionDurationOverride ??
+              const Duration(milliseconds: 500),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             final curvedAnimation = CurvedAnimation(
               parent: animation,
-              curve: Curves.easeInOutCubicEmphasized,
-              reverseCurve: Curves.easeInOutCubic,
+              curve: curve,
+              reverseCurve: reverseCurve,
             );
 
             return LayoutBuilder(
@@ -43,8 +59,8 @@ class CircularRevealPageRoute<T> extends PageRouteBuilder<T> {
                           ),
                           child: child,
                         ),
-                        // Visual shockwave ring at the expanding boundary
-                        if (curvedAnimation.value > 0.02 && curvedAnimation.value < 0.98)
+                        // Optional visual shockwave ring at the expanding boundary
+                        if (showRing && curvedAnimation.value > 0.02 && curvedAnimation.value < 0.98)
                           IgnorePointer(
                             child: CustomPaint(
                               size: screenSize,
@@ -67,17 +83,21 @@ class CircularRevealPageRoute<T> extends PageRouteBuilder<T> {
 class CircularRevealClipper extends CustomClipper<Path> {
   final double progress;
   final Offset origin;
+  final double minRadius;
+  final double safetyMargin;
 
   CircularRevealClipper({
     required this.progress,
     required this.origin,
+    this.minRadius = 1.0,
+    this.safetyMargin = 2.0,
   });
 
   @override
   Path getClip(Size size) {
     final path = Path();
     if (progress <= 0.0) {
-      return path; // Empty
+      return path; // Empty - nothing revealed yet
     }
     if (progress >= 1.0) {
       path.addRect(Rect.fromLTWH(0, 0, size.width, size.height));
@@ -89,16 +109,20 @@ class CircularRevealClipper extends CustomClipper<Path> {
     final d2 = (origin - Offset(size.width, 0)).distance;
     final d3 = (origin - Offset(0, size.height)).distance;
     final d4 = (origin - Offset(size.width, size.height)).distance;
-    final maxRadius = [d1, d2, d3, d4].reduce(math.max);
+    final maxRadius = [d1, d2, d3, d4].reduce(math.max) + safetyMargin;
 
-    final currentRadius = maxRadius * progress;
+    // Start with a small radius of ~1 px, expanding smoothly to full cover
+    final currentRadius = minRadius + (maxRadius - minRadius) * progress;
     path.addOval(Rect.fromCircle(center: origin, radius: currentRadius));
     return path;
   }
 
   @override
   bool shouldReclip(CircularRevealClipper oldClipper) {
-    return oldClipper.progress != progress || oldClipper.origin != origin;
+    return oldClipper.progress != progress ||
+        oldClipper.origin != origin ||
+        oldClipper.minRadius != minRadius ||
+        oldClipper.safetyMargin != safetyMargin;
   }
 }
 

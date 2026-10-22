@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/mountain_page.dart';
+import '../screens/circular_carousel_demo/circular_carousel_explore_screen.dart';
 
 /// Registry entry defining a self-contained UI design in the Page Transitions Lab gallery.
 /// To register a new independent design, simply add a new [DesignEntry] to [DesignRegistry.entries].
@@ -54,6 +55,19 @@ class DesignRegistry {
       icon: Icons.motion_photos_on_rounded,
       accentColor: Color(0xFF0284C7),
       isAvailable: true,
+    ),
+
+    // Design 05 — Circular Carousel + Circular Reveal
+    DesignEntry(
+      id: 'circular-carousel-reveal',
+      title: 'Design 05 — Circular Carousel',
+      category: 'Design 05 • Motion',
+      description:
+          'Curved interactive mountain carousel with a smooth expanding circular reveal originating from the active mountain card.',
+      icon: Icons.album_rounded,
+      accentColor: const Color(0xFF7C3AED),
+      isAvailable: true,
+      builder: (context) => const CircularCarouselExploreScreen(),
     ),
 
     // 3. Architectural Typography Studio (Future concept)

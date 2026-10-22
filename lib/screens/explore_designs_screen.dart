@@ -6,6 +6,7 @@ import 'mountain_page.dart';
 import 'shared_axis_demo/shared_axis_explore_screen.dart';
 import 'zoom_fade_demo/zoom_fade_explore_screen.dart';
 import 'parallax_demo/parallax_explore_screen.dart';
+import 'circular_carousel_demo/circular_carousel_explore_screen.dart';
 
 // Transition demos accessible through the Motion Experiments gallery card
 import 'circular_demo_screen.dart';
@@ -108,6 +109,19 @@ class _ExploreDesignsScreenState extends State<ExploreDesignsScreen> {
         accentColor: Color(0xFF7C3AED),
         isAvailable: true,
         destinationPage: ParallaxExploreScreen(),
+      ),
+
+      // 5. Design 05 — Circular Carousel + Circular Reveal
+      const DesignConcept(
+        id: 'circular-carousel-reveal',
+        title: 'Design 05 — Circular Carousel',
+        category: 'Design 05 • Motion',
+        description:
+            'Curved interactive mountain carousel with a smooth expanding circular reveal originating from the active mountain card.',
+        icon: Icons.album_rounded,
+        accentColor: Color(0xFF7C3AED),
+        isAvailable: true,
+        destinationPage: CircularCarouselExploreScreen(),
       ),
 
       // 3. Interactive Motion Experiments (Hosts the 5 transition demos)

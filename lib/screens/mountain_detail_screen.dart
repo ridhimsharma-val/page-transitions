@@ -5,11 +5,13 @@ import '../widgets/mountain_image_widget.dart';
 class MountainDetailScreen extends StatefulWidget {
   final MountainData mountain;
   final bool initialFavorited;
+  final bool isCircularReveal;
 
   const MountainDetailScreen({
     super.key,
     required this.mountain,
     this.initialFavorited = false,
+    this.isCircularReveal = false,
   });
 
   @override
@@ -70,7 +72,7 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
   void _setupAnimations(Animation<double> parent) {
     final disableAnimations = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
-    if (disableAnimations) {
+    if (disableAnimations || widget.isCircularReveal) {
       _bgOpacity = const AlwaysStoppedAnimation(1.0);
       _sheetOpacity = const AlwaysStoppedAnimation(1.0);
       _sheetSlide = const AlwaysStoppedAnimation(Offset.zero);
@@ -152,7 +154,7 @@ class _MountainDetailScreenState extends State<MountainDetailScreen>
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {},
       child: Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: widget.isCircularReveal ? const Color(0xFFF3F6FC) : Colors.transparent,
         body: Stack(
           children: [
             Positioned.fill(
