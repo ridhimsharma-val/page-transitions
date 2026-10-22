@@ -12,6 +12,9 @@ import 'package:page_transitions/transitions/zoom_fade_route.dart';
 import 'package:page_transitions/transitions/parallax_route.dart';
 import 'package:page_transitions/transitions/circular_reveal_route.dart';
 import 'package:page_transitions/screens/circular_carousel_demo/circular_carousel_explore_screen.dart';
+import 'package:page_transitions/transitions/shared_element_morph_route.dart';
+import 'package:page_transitions/screens/shared_element_demo/shared_element_explore_screen.dart';
+import 'package:page_transitions/screens/shared_element_demo/shared_element_detail_screen.dart';
 
 class _MockHttpClient extends Fake implements HttpClient {
   @override
@@ -1316,5 +1319,207 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Lhotse'), findsWidgets);
     expect(find.text('8,516 m'), findsWidgets);
+  });
+
+  test('Design 06 — CurvedRectTween and SharedElementMorphRoute configuration properties', () {
+    final route = SharedElementMorphRoute(
+      page: const SharedElementDetailScreen(mountain: MountainData.everest),
+    );
+    expect(route.transitionDuration, const Duration(milliseconds: 900));
+    expect(route.reverseTransitionDuration, const Duration(milliseconds: 750));
+    expect(route.opaque, isFalse);
+
+    // Verify CurvedRectTween physics
+    const beginRect = Rect.fromLTWH(20, 100, 350, 210);
+    const endRect = Rect.fromLTWH(0, 0, 390, 360);
+    final tween = CurvedRectTween(
+      begin: beginRect,
+      end: endRect,
+      curve: Curves.easeInOutCubic,
+    );
+
+    expect(tween.lerp(0.0), beginRect);
+    expect(tween.lerp(1.0), endRect);
+
+    // At 50% time, CurvedRectTween transforms by Curves.easeInOutCubic.transform(0.5)
+    final midRect = tween.lerp(0.5);
+    final expectedMidRect = Rect.lerp(
+      beginRect,
+      endRect,
+      Curves.easeInOutCubic.transform(0.5),
+    );
+    expect(midRect, expectedMidRect);
+  });
+
+  test('Design 06 — Corner radius morphing from 0% to 78% with Curves.easeInOutCubic', () {
+    const sourceRadius = BorderRadius.all(Radius.circular(24.0));
+    const destRadius = BorderRadius.only(
+      bottomLeft: Radius.circular(32.0),
+      bottomRight: Radius.circular(32.0),
+    );
+
+    // At progress = 0.0
+    final t0 = const Interval(0.00, 0.78, curve: Curves.easeInOutCubic).transform(0.0);
+    final r0 = BorderRadius.lerp(sourceRadius, destRadius, t0)!;
+    expect(r0.topLeft.x, 24.0);
+    expect(r0.topRight.x, 24.0);
+    expect(r0.bottomLeft.x, 24.0);
+    expect(r0.bottomRight.x, 24.0);
+
+    // At progress = 0.78 (exact end of corner morph interval)
+    final t78 = const Interval(0.00, 0.78, curve: Curves.easeInOutCubic).transform(0.78);
+    final r78 = BorderRadius.lerp(sourceRadius, destRadius, t78)!;
+    expect(r78.topLeft.x, 0.0);
+    expect(r78.topRight.x, 0.0);
+    expect(r78.bottomLeft.x, 32.0);
+    expect(r78.bottomRight.x, 32.0);
+
+    // At progress = 1.0 (settled)
+    final t1 = const Interval(0.00, 0.78, curve: Curves.easeInOutCubic).transform(1.0);
+    final r1 = BorderRadius.lerp(sourceRadius, destRadius, t1)!;
+    expect(r1.topLeft.x, 0.0);
+    expect(r1.topRight.x, 0.0);
+    expect(r1.bottomLeft.x, 32.0);
+    expect(r1.bottomRight.x, 32.0);
+  });
+
+  testWidgets('Design 06 — SharedElementDetailScreen respects disableAnimations / reduced motion',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MediaQuery(
+        data: MediaQueryData(disableAnimations: true),
+        child: MaterialApp(
+          home: SharedElementDetailScreen(mountain: MountainData.everest),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Verify all content immediately rendered without opacity/translation delays
+    expect(find.text('Mount Everest'), findsOneWidget);
+    expect(find.text('Sagarmatha • Chomolungma'), findsOneWidget);
+    expect(find.text('Overview'), findsOneWidget);
+    expect(find.text('Standard Expedition Route'), findsOneWidget);
+  });
+
+  testWidgets('Design 06 — SharedElementExploreScreen renders cards and navigates to details with real Hero flight',
+      (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: SharedElementExploreScreen(),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Verify header
+    expect(find.text('DESIGN 06 • MORPH'), findsOneWidget);
+    expect(find.text('Shared Element'), findsOneWidget);
+
+    // Verify mountain cards exist with stable Hero tags
+    expect(find.text('Mount Everest'), findsOneWidget);
+    expect(find.text('K2'), findsOneWidget);
+
+    final everestHeroFinder = find.byWidgetPredicate(
+      (w) => w is Hero && w.tag == 'morph-mountain-image-everest',
+    );
+    expect(everestHeroFinder, findsOneWidget);
+
+    // 1. Tap Mount Everest to trigger 900ms forward morph flight
+    await tester.tap(find.text('Mount Everest'));
+    await tester.pump();
+
+    // Mid-transition at 450ms
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(find.byType(SharedElementDetailScreen), findsOneWidget);
+    expect(find.byType(SharedElementExploreScreen), findsOneWidget);
+
+    // Finish 900ms forward flight
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    // Details page elements displayed
+    expect(find.byType(SharedElementDetailScreen), findsOneWidget);
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('Sagarmatha • Chomolungma'), findsOneWidget);
+    expect(find.text('8,848 m'), findsWidgets);
+    expect(find.text('Overview'), findsOneWidget);
+    expect(find.text('Standard Expedition Route'), findsOneWidget);
+
+    // 2. Reverse navigation via back button
+    final detailBackFinder = find.descendant(
+      of: find.byType(SharedElementDetailScreen),
+      matching: find.byIcon(Icons.arrow_back_rounded),
+    );
+    await tester.tap(detailBackFinder);
+    await tester.pump();
+
+    // Mid-reverse at 375ms
+    await tester.pump(const Duration(milliseconds: 375));
+    expect(find.byType(SharedElementExploreScreen), findsOneWidget);
+
+    // Complete 750ms reverse flight
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    // Returned to Explore screen
+    expect(find.byType(SharedElementDetailScreen), findsNothing);
+    expect(find.byType(SharedElementExploreScreen), findsOneWidget);
+    expect(find.text('Mount Everest'), findsOneWidget);
+
+    // 3. Test second mountain (K2) independent navigation without Hero collision
+    final k2HeroFinder = find.byWidgetPredicate(
+      (w) => w is Hero && w.tag == 'morph-mountain-image-k2',
+    );
+    expect(k2HeroFinder, findsOneWidget);
+
+    await tester.tap(find.text('K2'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 950));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SharedElementDetailScreen), findsOneWidget);
+    expect(find.text('K2'), findsWidgets);
+    expect(find.text('8,611 m'), findsWidgets);
+
+    // Return to Explore
+    await tester.tap(find.descendant(
+      of: find.byType(SharedElementDetailScreen),
+      matching: find.byIcon(Icons.arrow_back_rounded),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SharedElementExploreScreen), findsOneWidget);
+    expect(find.text('K2'), findsOneWidget);
+  });
+
+  testWidgets('Design 06 — Gallery integration from ExploreDesignsScreen to SharedElementExploreScreen',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const PageTransitionsApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Explore Designs'), findsOneWidget);
+    await tester.ensureVisible(find.text('Design 06 — Shared Element Morph'));
+    await tester.pumpAndSettle();
+
+    // Tap Design 06 card
+    await tester.tap(find.text('Design 06 — Shared Element Morph'));
+    await tester.pumpAndSettle();
+
+    // Verify SharedElementExploreScreen is opened
+    expect(find.byType(SharedElementExploreScreen), findsOneWidget);
+    expect(find.text('DESIGN 06 • MORPH'), findsOneWidget);
+    expect(find.text('Mount Everest'), findsOneWidget);
+
+    // Return to gallery
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Explore Designs'), findsOneWidget);
   });
 }

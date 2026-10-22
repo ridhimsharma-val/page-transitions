@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../screens/mountain_page.dart';
 import '../screens/circular_carousel_demo/circular_carousel_explore_screen.dart';
+import '../screens/shared_element_demo/shared_element_explore_screen.dart';
 
 /// Registry entry defining a self-contained UI design in the Page Transitions Lab gallery.
 /// To register a new independent design, simply add a new [DesignEntry] to [DesignRegistry.entries].
@@ -68,6 +69,19 @@ class DesignRegistry {
       accentColor: const Color(0xFF7C3AED),
       isAvailable: true,
       builder: (context) => const CircularCarouselExploreScreen(),
+    ),
+
+    // Design 06 — Shared Element Morph
+    DesignEntry(
+      id: 'shared-element-morph',
+      title: 'Design 06 — Shared Element Morph',
+      category: 'Design 06 • Motion',
+      description:
+          'Cinematic shared-element flight with coordinated corner-radius morphing and staggered content arrival.',
+      icon: Icons.auto_awesome_motion_rounded,
+      accentColor: const Color(0xFF7C3AED),
+      isAvailable: true,
+      builder: (context) => const SharedElementExploreScreen(),
     ),
 
     // 3. Architectural Typography Studio (Future concept)
