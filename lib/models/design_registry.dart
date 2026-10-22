@@ -1,111 +1,74 @@
 import 'package:flutter/material.dart';
 import '../screens/mountain_page.dart';
+import '../screens/shared_axis_demo/shared_axis_explore_screen.dart';
+import '../screens/zoom_fade_demo/zoom_fade_explore_screen.dart';
+import '../screens/parallax_demo/parallax_explore_screen.dart';
 import '../screens/circular_carousel_demo/circular_carousel_explore_screen.dart';
 import '../screens/cloudstorm_demo/cloudstorm_explore_screen.dart';
 
 /// Registry entry defining a self-contained UI design in the Page Transitions Lab gallery.
-/// To register a new independent design, simply add a new [DesignEntry] to [DesignRegistry.entries].
 class DesignEntry {
   final String id;
+  final String designNumber;
   final String title;
-  final String category;
-  final String description;
-  final String? previewImageUrl;
-  final IconData icon;
-  final Color accentColor;
-  final bool isAvailable;
-  final Widget Function(BuildContext context)? builder;
+  final Widget Function(BuildContext context) builder;
 
   const DesignEntry({
     required this.id,
+    required this.designNumber,
     required this.title,
-    required this.category,
-    required this.description,
-    this.previewImageUrl,
-    required this.icon,
-    required this.accentColor,
-    this.isAvailable = true,
-    this.builder,
+    required this.builder,
   });
 }
 
 class DesignRegistry {
   static final List<DesignEntry> entries = [
-    // 1. World Above 8,000 Metres (Primary Design Showcase)
+    // Design 01 — Hero Transition
     DesignEntry(
       id: 'mountain-world',
-      title: 'World Above 8,000 Metres',
-      category: 'Travel & Exploration',
-      description:
-          'Explore the world\'s highest peaks through a light, photography-led mountain mobile experience with genuine Hero transitions.',
-      previewImageUrl:
-          'https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=1200&auto=format&fit=crop',
-      icon: Icons.landscape_rounded,
-      accentColor: const Color(0xFF7C3AED),
-      isAvailable: true,
+      designNumber: 'Design 01',
+      title: 'Hero Transition',
       builder: (context) => const MountainPage(),
     ),
 
-    // 2. Interactive Motion Experiments (Hosts the 5 transitions)
-    const DesignEntry(
-      id: 'motion-lab',
-      title: 'Interactive Motion Experiments',
-      category: 'Motion & Physics',
-      description:
-          'Five screen-to-screen transitions: Hero flight, circular aperture, spring slide, 3D flip, and liquid wave.',
-      icon: Icons.motion_photos_on_rounded,
-      accentColor: Color(0xFF0284C7),
-      isAvailable: true,
+    // Design 02 — Shared-Axis Transition
+    DesignEntry(
+      id: 'shared-axis-transition',
+      designNumber: 'Design 02',
+      title: 'Shared-Axis Transition',
+      builder: (context) => const SharedAxisExploreScreen(),
+    ),
+
+    // Design 03 — Zoom & Fade Transition
+    DesignEntry(
+      id: 'zoom-fade-transition',
+      designNumber: 'Design 03',
+      title: 'Zoom & Fade Transition',
+      builder: (context) => const ZoomFadeExploreScreen(),
+    ),
+
+    // Design 04 — Parallax Depth
+    DesignEntry(
+      id: 'parallax-depth-transition',
+      designNumber: 'Design 04',
+      title: 'Parallax Depth',
+      builder: (context) => const ParallaxExploreScreen(),
     ),
 
     // Design 05 — Circular Carousel + Circular Reveal
     DesignEntry(
       id: 'circular-carousel-reveal',
-      title: 'Design 05 — Circular Carousel',
-      category: 'Design 05 • Motion',
-      description:
-          'Curved interactive mountain carousel with a smooth expanding circular reveal originating from the active mountain card.',
-      icon: Icons.album_rounded,
-      accentColor: const Color(0xFF7C3AED),
-      isAvailable: true,
+      designNumber: 'Design 05',
+      title: 'Circular Carousel',
       builder: (context) => const CircularCarouselExploreScreen(),
     ),
 
     // Design 06 — Cloudstorm Reveal
     DesignEntry(
       id: 'cloudstorm-reveal',
-      title: 'Design 06 — Cloudstorm Reveal',
-      category: 'Design 06 • Motion',
-      description:
-          'Atmospheric mountain transition where a sweeping Himalayan cloud bank blankets the screen to reveal the details scene.',
-      icon: Icons.cloud_rounded,
-      accentColor: const Color(0xFF7C3AED),
-      isAvailable: true,
+      designNumber: 'Design 06',
+      title: 'Cloudstorm Reveal',
       builder: (context) => const CloudstormExploreScreen(),
-    ),
-
-    // 3. Architectural Typography Studio (Future concept)
-    const DesignEntry(
-      id: 'minimal-portfolio',
-      title: 'Architectural Typography Studio',
-      category: 'Minimal Portfolio',
-      description:
-          'Monochromatic Swiss grid layouts, fluid editorial typesetting, and frictionless transitions.',
-      icon: Icons.architecture_rounded,
-      accentColor: Color(0xFF059669),
-      isAvailable: false,
-    ),
-
-    // 4. Botanical Field Records (Future concept)
-    const DesignEntry(
-      id: 'nature-journal',
-      title: 'Botanical Field Records',
-      category: 'Nature Journal',
-      description:
-          'High-density biological cataloging, smooth card expansions, and tactile botanical illustrations.',
-      icon: Icons.eco_rounded,
-      accentColor: Color(0xFFD97706),
-      isAvailable: false,
     ),
   ];
 }

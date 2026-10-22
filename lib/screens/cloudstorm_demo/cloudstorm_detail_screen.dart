@@ -115,14 +115,14 @@ class CloudstormDetailScreen extends StatelessWidget {
           final double cardsTranslateY =
               disableAnimations ? 0.0 : 16.0 * (1.0 - cardsProgress);
 
-          return Container(
-            color: const Color(0xFFF6F5FC).withValues(alpha: bgOpacity),
-            child: SafeArea(
-              top: false,
-              bottom: false,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Container(
+                color: const Color(0xFFF6F5FC).withValues(alpha: bgOpacity),
+                child: SafeArea(
+                  top: false,
+                  bottom: false,
                   child: Stack(
                     children: [
                       // Scrollable Mountain Details
@@ -423,108 +423,6 @@ class CloudstormDetailScreen extends StatelessWidget {
                                                 ),
                                               ),
                                             ],
-                                          ),
-
-                                          const SizedBox(height: 16),
-
-                                          // Expedition Route Card
-                                          Container(
-                                            width: double.infinity,
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                              border: Border.all(
-                                                  color:
-                                                      const Color(0xFFE2E8F0)),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: const Color(0xFF1E1B2E)
-                                                      .withValues(alpha: 0.03),
-                                                  blurRadius: 12,
-                                                  offset: const Offset(0, 4),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                const Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.route_rounded,
-                                                      size: 16,
-                                                      color: Color(0xFF7C3AED),
-                                                    ),
-                                                    SizedBox(width: 6),
-                                                    Expanded(
-                                                      child: Text(
-                                                        'Standard Expedition Route',
-                                                        style: TextStyle(
-                                                          fontSize: 14,
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                          color:
-                                                              Color(0xFF1E1B2E),
-                                                        ),
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 6),
-                                                Text(
-                                                  mountain.expeditionRoute,
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Color(0xFF64748B),
-                                                    height: 1.4,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 12),
-                                                Wrap(
-                                                  spacing: 6,
-                                                  runSpacing: 6,
-                                                  children: mountain.camps
-                                                      .map(
-                                                        (camp) => Container(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                            horizontal: 10,
-                                                            vertical: 4,
-                                                          ),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: const Color(
-                                                                0xFFF1F5F9),
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        8),
-                                                          ),
-                                                          child: Text(
-                                                            camp,
-                                                            style:
-                                                                const TextStyle(
-                                                              fontSize: 11,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                              color: Color(
-                                                                  0xFF334155),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      )
-                                                      .toList(),
-                                                ),
-                                              ],
-                                            ),
                                           ),
                                         ],
                                       ),

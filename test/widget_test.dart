@@ -118,10 +118,11 @@ void main() {
 
     // 1. Verify Explore Designs entry page
     expect(find.text('Explore Designs'), findsOneWidget);
-    expect(find.text('World Above 8,000 Metres'), findsOneWidget);
+    expect(find.text('Hero Transition'), findsOneWidget);
+    expect(find.text('Design 01'), findsOneWidget);
 
-    // 2. Tap on "World Above 8,000 Metres" card to navigate to MountainPage
-    await tester.tap(find.text('World Above 8,000 Metres'));
+    // 2. Tap on "Hero Transition" card to navigate to MountainPage
+    await tester.tap(find.text('Hero Transition'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
 
@@ -290,7 +291,7 @@ void main() {
 
     // 1. Verify Design 02 card exists on ExploreDesignsScreen
     expect(find.text('Shared-Axis Transition'), findsOneWidget);
-    expect(find.text('Design 02 • Motion'), findsOneWidget);
+    expect(find.text('Design 02'), findsOneWidget);
 
     // 2. Scroll and open Design 02 (SharedAxisExploreScreen)
     await tester.ensureVisible(find.text('Shared-Axis Transition'));
@@ -507,13 +508,13 @@ void main() {
     await tester.pumpAndSettle();
 
     // 1. Verify Design 03 card exists on ExploreDesignsScreen
-    expect(find.text('Design 03 — Zoom & Fade Transition'), findsOneWidget);
-    expect(find.text('Design 03 • Motion'), findsOneWidget);
+    expect(find.text('Zoom & Fade Transition'), findsOneWidget);
+    expect(find.text('Design 03'), findsOneWidget);
 
     // 2. Open Design 03 (ZoomFadeExploreScreen)
-    await tester.ensureVisible(find.text('Design 03 — Zoom & Fade Transition'));
+    await tester.ensureVisible(find.text('Zoom & Fade Transition'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Design 03 — Zoom & Fade Transition'));
+    await tester.tap(find.text('Zoom & Fade Transition'));
     await tester.pumpAndSettle();
 
     // 3. Verify Screen A (ZoomFadeExploreScreen) elements
@@ -687,13 +688,13 @@ void main() {
     await tester.pumpAndSettle();
 
     // 1. Verify Design 04 card exists on ExploreDesignsScreen
-    expect(find.text('Design 04 — Parallax Depth'), findsOneWidget);
-    expect(find.text('Design 04 • Motion'), findsOneWidget);
+    expect(find.text('Parallax Depth'), findsOneWidget);
+    expect(find.text('Design 04'), findsOneWidget);
 
     // 2. Open Design 04 (ParallaxExploreScreen)
-    await tester.ensureVisible(find.text('Design 04 — Parallax Depth'));
+    await tester.ensureVisible(find.text('Parallax Depth'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Design 04 — Parallax Depth'));
+    await tester.tap(find.text('Parallax Depth'));
     await tester.pumpAndSettle();
 
     // 3. Verify Screen A (ParallaxExploreScreen) elements
@@ -1215,11 +1216,12 @@ void main() {
 
     // Verify Design 05 card is visible and scroll to it
     expect(find.text('Explore Designs'), findsOneWidget);
-    await tester.ensureVisible(find.text('Design 05 — Circular Carousel'));
+    expect(find.text('Design 05'), findsOneWidget);
+    await tester.ensureVisible(find.text('Circular Carousel'));
     await tester.pumpAndSettle();
 
     // Tap Design 05 card to open CircularCarouselExploreScreen
-    await tester.tap(find.text('Design 05 — Circular Carousel'));
+    await tester.tap(find.text('Circular Carousel'));
     await tester.pumpAndSettle();
 
     // Verify CircularCarouselExploreScreen is opened
@@ -1369,7 +1371,8 @@ void main() {
     expect(find.text('Mount Everest'), findsOneWidget);
     expect(find.text('Sagarmatha • Chomolungma'), findsOneWidget);
     expect(find.text('Overview'), findsOneWidget);
-    expect(find.text('Standard Expedition Route'), findsOneWidget);
+    expect(find.text('Climbing Season'), findsOneWidget);
+    expect(find.text('Standard Expedition Route'), findsNothing);
   });
 
   testWidgets('Design 06 — CloudstormExploreScreen renders, navigates to details with atmospheric cloudstorm wipe, and reverses',
@@ -1413,7 +1416,8 @@ void main() {
     expect(find.text('Sagarmatha • Chomolungma'), findsOneWidget);
     expect(find.text('8,848 m'), findsWidgets);
     expect(find.text('Overview'), findsOneWidget);
-    expect(find.text('Standard Expedition Route'), findsOneWidget);
+    expect(find.text('Climbing Season'), findsOneWidget);
+    expect(find.text('Standard Expedition Route'), findsNothing);
 
     // 2. Reverse navigation via back button
     final detailBackFinder = find.descendant(
@@ -1466,11 +1470,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Explore Designs'), findsOneWidget);
-    await tester.ensureVisible(find.text('Design 06 — Cloudstorm Reveal'));
+    expect(find.text('Design 06'), findsOneWidget);
+    await tester.ensureVisible(find.text('Cloudstorm Reveal'));
     await tester.pumpAndSettle();
 
     // Tap Design 06 card
-    await tester.tap(find.text('Design 06 — Cloudstorm Reveal'));
+    await tester.tap(find.text('Cloudstorm Reveal'));
     await tester.pumpAndSettle();
 
     // Verify CloudstormExploreScreen is opened
