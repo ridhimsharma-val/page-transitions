@@ -4,14 +4,15 @@ import '../../transitions/circular_reveal_route.dart';
 import '../../widgets/mountain_image_widget.dart';
 import '../mountain_detail_screen.dart';
 
-/// Screen A — Curved Circular Mountain Carousel for Design 05.
+/// Screen A — Curved Circular Mountain Carousel for Design 05 with Infinite Looping.
 ///
 /// Features:
-/// 1. A curved interactive mountain carousel built with [PageView.builder] and [PageController].
-/// 2. Cards follow a subtle curved arc (parabolic vertical drop) with differential scaling and opacity.
-/// 3. Continuous fractional interpolation on swipe without abrupt frame jumps.
-/// 4. Side-card tap selection with 400ms easeOutCubic animation.
-/// 5. Expanding circular reveal transition to [MountainDetailScreen], originating
+/// 1. Bidirectional, continuous infinite looping via virtual modulo indexing.
+/// 2. Curved interactive mountain carousel built with [PageView.builder] and [PageController].
+/// 3. Cards follow a subtle curved arc (parabolic vertical drop of ~22px) with differential scaling and opacity.
+/// 4. Continuous fractional interpolation on swipe without abrupt frame jumps or resets.
+/// 5. Side-card tap selection with 400ms easeOutCubic animation.
+/// 6. Expanding circular reveal transition to [MountainDetailScreen], originating
 ///    from the exact center of the active mountain card.
 class CircularCarouselExploreScreen extends StatefulWidget {
   final int initialIndex;
@@ -28,24 +29,44 @@ class CircularCarouselExploreScreen extends StatefulWidget {
 
 class _CircularCarouselExploreScreenState
     extends State<CircularCarouselExploreScreen> {
+  // Generous base page allowing thousands of swipes in either direction immediately
+  static const int _kInitialVirtualPage = 1000;
+
   final List<MountainData> _mountains = MountainData.all;
-  late int _currentIndex;
+  late int _currentVirtualIndex;
   late final PageController _pageController;
   final Map<int, GlobalKey> _cardKeys = {};
   bool _isNavigating = false;
 
+  int _realIndex(int virtualIndex) {
+    if (_mountains.isEmpty) return 0;
+    return (virtualIndex % _mountains.length + _mountains.length) % _mountains.length;
+  }
+
+  MountainData get activeMountain {
+    if (_mountains.isEmpty) return MountainData.everest;
+    return _mountains[_realIndex(_currentVirtualIndex)];
+  }
+
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex.clamp(0, _mountains.length - 1);
+    final initialMountainIndex =
+        widget.initialIndex.clamp(0, _mountains.isEmpty ? 0 : _mountains.length - 1);
+
+    if (_mountains.length > 1) {
+      // Ensure base is an exact multiple of the mountain count
+      final int alignedBase =
+          (_kInitialVirtualPage ~/ _mountains.length) * _mountains.length;
+      _currentVirtualIndex = alignedBase + initialMountainIndex;
+    } else {
+      _currentVirtualIndex = initialMountainIndex;
+    }
+
     _pageController = PageController(
       viewportFraction: 0.72,
-      initialPage: _currentIndex,
+      initialPage: _currentVirtualIndex,
     );
-
-    for (int i = 0; i < _mountains.length; i++) {
-      _cardKeys[i] = GlobalKey();
-    }
   }
 
   @override
@@ -65,7 +86,7 @@ class _CircularCarouselExploreScreenState
 
   /// Calculates the center of the active card in global coordinates.
   Offset _getActiveCardCenter() {
-    final key = _cardKeys[_currentIndex];
+    final key = _cardKeys[_currentVirtualIndex];
     final renderBox = key?.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox != null && renderBox.hasSize) {
       return renderBox.localToGlobal(
@@ -110,12 +131,21 @@ class _CircularCarouselExploreScreenState
     }
   }
 
-  void _onCardTap(int index) {
-    if (index == _currentIndex) {
-      _openDetail(_mountains[index]);
+  void _onCardTap(int virtualIndex, [BuildContext? cardContext]) {
+    if (virtualIndex == _currentVirtualIndex) {
+      Offset? origin;
+      if (cardContext != null) {
+        final renderBox = cardContext.findRenderObject() as RenderBox?;
+        if (renderBox != null && renderBox.hasSize) {
+          origin = renderBox.localToGlobal(
+            Offset(renderBox.size.width / 2, renderBox.size.height / 2),
+          );
+        }
+      }
+      _openDetail(activeMountain, origin);
     } else {
       _pageController.animateToPage(
-        index,
+        virtualIndex,
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeOutCubic,
       );
@@ -124,8 +154,6 @@ class _CircularCarouselExploreScreenState
 
   @override
   Widget build(BuildContext context) {
-    final activeMountain = _mountains[_currentIndex];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF6F5FC),
       body: SafeArea(
@@ -217,7 +245,7 @@ class _CircularCarouselExploreScreenState
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24),
                   child: Text(
-                    'Swipe horizontally to navigate peaks along the curved arc.',
+                    'Swipe horizontally to navigate peaks continuously in either direction.',
                     style: TextStyle(
                       fontSize: 13,
                       color: Color(0xFF64748B),
@@ -238,24 +266,27 @@ class _CircularCarouselExploreScreenState
                       return AnimatedBuilder(
                         animation: _pageController,
                         builder: (context, _) {
-                          double page = _currentIndex.toDouble();
+                          double page = _currentVirtualIndex.toDouble();
                           if (_pageController.hasClients &&
                               _pageController.position.haveDimensions) {
-                            page = _pageController.page ?? _currentIndex.toDouble();
+                            page = _pageController.page ?? _currentVirtualIndex.toDouble();
                           }
 
                           return PageView.builder(
                             controller: _pageController,
                             physics: const BouncingScrollPhysics(),
-                            itemCount: _mountains.length,
-                            onPageChanged: (index) {
+                            itemCount: _mountains.length > 1 ? null : 1,
+                            onPageChanged: (virtualIndex) {
                               setState(() {
-                                _currentIndex = index;
+                                _currentVirtualIndex = virtualIndex;
+                                _cardKeys.removeWhere(
+                                    (k, _) => (k - _currentVirtualIndex).abs() > 10);
                               });
                             },
-                            itemBuilder: (context, index) {
-                              final mountain = _mountains[index];
-                              final double delta = page - index;
+                            itemBuilder: (context, virtualIndex) {
+                              final realIndex = _realIndex(virtualIndex);
+                              final mountain = _mountains[realIndex];
+                              final double delta = page - virtualIndex;
                               final double absDelta = delta.abs();
 
                               // Scale: active card = 1.0, immediate neighbors = ~0.85
@@ -271,7 +302,9 @@ class _CircularCarouselExploreScreenState
                               // Opacity: center card = 1.0, side cards minimum ~0.70
                               final double opacity = (1.0 - (0.30 * absDelta)).clamp(0.70, 1.0);
 
-                              final bool isSelected = index == _currentIndex;
+                              final bool isSelected = virtualIndex == _currentVirtualIndex;
+                              final key = _cardKeys.putIfAbsent(
+                                  virtualIndex, () => GlobalKey());
 
                               return Center(
                                 child: Transform.translate(
@@ -281,12 +314,13 @@ class _CircularCarouselExploreScreenState
                                     child: Opacity(
                                       opacity: opacity,
                                       child: SizedBox(
-                                        key: _cardKeys[index],
+                                        key: key,
                                         height: cardHeight,
                                         child: _buildMountainCard(
                                           mountain: mountain,
                                           isSelected: isSelected,
-                                          onTap: () => _onCardTap(index),
+                                          onTap: (cardCtx) =>
+                                              _onCardTap(virtualIndex, cardCtx),
                                         ),
                                       ),
                                     ),
@@ -351,7 +385,7 @@ class _CircularCarouselExploreScreenState
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                      activeMountain.elevation,
+                                      activeMountain.shortElevation,
                                       style: const TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w800,
@@ -424,155 +458,159 @@ class _CircularCarouselExploreScreenState
   Widget _buildMountainCard({
     required MountainData mountain,
     required bool isSelected,
-    required VoidCallback onTap,
+    required void Function(BuildContext context) onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF7C3AED) : const Color(0xFFE2E8F0),
-            width: isSelected ? 2.0 : 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isSelected
-                  ? const Color(0xFF7C3AED).withValues(alpha: 0.16)
-                  : Colors.black.withValues(alpha: 0.05),
-              blurRadius: isSelected ? 24 : 14,
-              offset: const Offset(0, 8),
+    return Builder(
+      builder: (cardContext) {
+        return GestureDetector(
+          onTap: () => onTap(cardContext),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: isSelected ? const Color(0xFF7C3AED) : const Color(0xFFE2E8F0),
+                width: isSelected ? 2.0 : 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isSelected
+                      ? const Color(0xFF7C3AED).withValues(alpha: 0.16)
+                      : Colors.black.withValues(alpha: 0.05),
+                  blurRadius: isSelected ? 24 : 14,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Mountain Photograph
-            MountainImageWidget(
-              imageUrl: mountain.imageUrl,
-              mountainName: mountain.name,
-              fit: BoxFit.cover,
-            ),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Mountain Photograph
+                MountainImageWidget(
+                  imageUrl: mountain.imageUrl,
+                  mountainName: mountain.name,
+                  fit: BoxFit.cover,
+                ),
 
-            // Subtle atmospheric gradient overlay for readability
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.2),
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.75),
-                    ],
-                    stops: const [0.0, 0.45, 1.0],
+                // Subtle atmospheric gradient overlay for readability
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.2),
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.75),
+                        ],
+                        stops: const [0.0, 0.45, 1.0],
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
 
-            // Top Badges
-            Positioned(
-              top: 14,
-              left: 14,
-              right: 14,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(12),
+                // Top Badges
+                Positioned(
+                  top: 14,
+                  left: 14,
+                  right: 14,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            mountain.mountainType.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ),
-                      child: Text(
-                        mountain.mountainType.toUpperCase(),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7C3AED),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          mountain.shortElevation,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Bottom Mountain Label
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  right: 16,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        mountain.name,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.4,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF7C3AED),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      mountain.shortElevation,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Bottom Mountain Label
-            Positioned(
-              bottom: 16,
-              left: 16,
-              right: 16,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    mountain.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.4,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_rounded,
-                        color: Color(0xFFCBD5E1),
-                        size: 13,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          mountain.shortLocation,
-                          style: const TextStyle(
-                            color: Color(0xFFE2E8F0),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_rounded,
+                            color: Color(0xFFCBD5E1),
+                            size: 13,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              mountain.shortLocation,
+                              style: const TextStyle(
+                                color: Color(0xFFE2E8F0),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

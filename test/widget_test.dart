@@ -1146,4 +1146,92 @@ void main() {
 
     expect(find.text('Explore Designs'), findsOneWidget);
   });
+
+  testWidgets('Design 05 — Infinite looping bidirectional navigation and wraparound verification',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CircularCarouselExploreScreen(),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Initially at Everest
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('8,848 m'), findsWidgets);
+
+    // 1. Swipe BACKWARD (drag right Offset(250, 0)) from Everest -> wraps around to Lhotse!
+    await tester.drag(find.byType(PageView), const Offset(250, 0));
+    await tester.pumpAndSettle();
+
+    // Verify Lhotse is now active
+    expect(find.text('Lhotse'), findsWidgets);
+    expect(find.text('8,516 m'), findsWidgets);
+
+    // 2. Swipe BACKWARD again -> Kangchenjunga!
+    await tester.drag(find.byType(PageView), const Offset(250, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Kangchenjunga'), findsWidgets);
+    expect(find.text('8,586 m'), findsWidgets);
+
+    // 3. Swipe FORWARD (drag left Offset(-250, 0)) -> back to Lhotse!
+    await tester.drag(find.byType(PageView), const Offset(-250, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lhotse'), findsWidgets);
+    expect(find.text('8,516 m'), findsWidgets);
+
+    // 4. Swipe FORWARD again -> Everest!
+    await tester.drag(find.byType(PageView), const Offset(-250, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('8,848 m'), findsWidgets);
+
+    // 5. Swipe FORWARD through entire list: K2 -> Kangchenjunga -> Lhotse -> Everest
+    await tester.drag(find.byType(PageView), const Offset(-250, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('K2'), findsWidgets);
+
+    await tester.drag(find.byType(PageView), const Offset(-250, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Kangchenjunga'), findsWidgets);
+
+    await tester.drag(find.byType(PageView), const Offset(-250, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Lhotse'), findsWidgets);
+
+    await tester.drag(find.byType(PageView), const Offset(-250, 0));
+    await tester.pumpAndSettle();
+    // Reached Everest again after a full forward loop
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('8,848 m'), findsWidgets);
+
+    // 6. Open Details from the wrapped position and return
+    await tester.tap(find.text('Details'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MountainDetailScreen), findsOneWidget);
+    expect(find.text('Mount Everest'), findsWidgets);
+
+    // Return to carousel
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 550));
+    await tester.pumpAndSettle();
+
+    // Verify still at Everest and looping remains intact
+    expect(find.byType(CircularCarouselExploreScreen), findsOneWidget);
+    expect(find.text('Mount Everest'), findsWidgets);
+
+    // Can still swipe backward immediately to Lhotse
+    await tester.drag(find.byType(PageView), const Offset(250, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Lhotse'), findsWidgets);
+    expect(find.text('8,516 m'), findsWidgets);
+  });
 }
