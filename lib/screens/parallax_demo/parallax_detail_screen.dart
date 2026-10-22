@@ -68,6 +68,8 @@ class _ParallaxDetailScreenState extends State<ParallaxDetailScreen> {
                 // Initial scale: 1.06 -> Final scale: 1.00
                 // Horizontal translation: +24px -> 0px
                 // Interval: [0.00, 0.85] with Curves.easeOutCubic
+                // Forward opacity: constant 1.0 throughout.
+                // Reverse opacity: smooth fade 1.0 -> 0.0 with Curves.easeInOutCubic over [0.00, 0.85]
                 // -------------------------------------------------------------
                 final photoCurve = CurvedAnimation(
                   parent: routeAnim,
@@ -78,10 +80,24 @@ class _ParallaxDetailScreenState extends State<ParallaxDetailScreen> {
                 final double imageScale = 1.06 - (0.06 * photoT);
                 final double imageShiftX = 24.0 * (1.0 - photoT);
 
+                final bool isReversing = routeAnim.status == AnimationStatus.reverse ||
+                    (routeAnim.status == AnimationStatus.dismissed && routeAnim.value == 0.0);
+                final double photoOpacity;
+                if (disableAnimations || !isReversing) {
+                  photoOpacity = 1.0;
+                } else {
+                  photoOpacity = const Interval(
+                    0.00,
+                    0.85,
+                    curve: Curves.easeInOutCubic,
+                  ).transform(routeAnim.value.clamp(0.0, 1.0));
+                }
+
                 // -------------------------------------------------------------
                 // Layer C: Mountain title and metadata kinematics
                 // Vertical translation: +36px -> 0px (Curves.easeOutCubic)
                 // Opacity: 0.0 -> 1.0 (Curves.easeOut)
+                // Reverse opacity: smooth fade with Curves.easeInOutCubic
                 // Timed from 0.00 to eliminate dead-zones where only the photo shows
                 // -------------------------------------------------------------
                 final titleTransCurve = CurvedAnimation(
@@ -92,7 +108,7 @@ class _ParallaxDetailScreenState extends State<ParallaxDetailScreen> {
                 final titleFadeCurve = CurvedAnimation(
                   parent: routeAnim,
                   curve: const Interval(0.00, 0.70, curve: Curves.easeOut),
-                  reverseCurve: const Interval(0.00, 0.90, curve: Curves.easeIn),
+                  reverseCurve: const Interval(0.00, 0.90, curve: Curves.easeInOutCubic),
                 );
                 final double titleT = disableAnimations ? 1.0 : titleTransCurve.value;
                 final double titleShiftY = 36.0 * (1.0 - titleT);
@@ -102,6 +118,7 @@ class _ParallaxDetailScreenState extends State<ParallaxDetailScreen> {
                 // Layer D: Information cards and overview kinematics
                 // Vertical translation: +48px -> 0px (Curves.easeOutCubic)
                 // Opacity: 0.0 -> 1.0 (Curves.easeOut)
+                // Reverse opacity: smooth fade with Curves.easeInOutCubic
                 // Staggers smoothly behind title and settles at 1.00, without empty frames
                 // -------------------------------------------------------------
                 final cardsTransCurve = CurvedAnimation(
@@ -112,7 +129,7 @@ class _ParallaxDetailScreenState extends State<ParallaxDetailScreen> {
                 final cardsFadeCurve = CurvedAnimation(
                   parent: routeAnim,
                   curve: const Interval(0.00, 0.85, curve: Curves.easeOut),
-                  reverseCurve: const Interval(0.00, 1.00, curve: Curves.easeIn),
+                  reverseCurve: const Interval(0.00, 1.00, curve: Curves.easeInOutCubic),
                 );
                 final double cardsT = disableAnimations ? 1.0 : cardsTransCurve.value;
                 final double cardsShiftY = 48.0 * (1.0 - cardsT);
@@ -124,7 +141,7 @@ class _ParallaxDetailScreenState extends State<ParallaxDetailScreen> {
                 final topBarFadeCurve = CurvedAnimation(
                   parent: routeAnim,
                   curve: const Interval(0.00, 0.50, curve: Curves.easeOut),
-                  reverseCurve: const Interval(0.00, 0.50, curve: Curves.easeIn),
+                  reverseCurve: const Interval(0.00, 0.70, curve: Curves.easeInOutCubic),
                 );
                 final double topBarOpacity = disableAnimations ? 1.0 : topBarFadeCurve.value;
                 final double topBarShiftY = -10.0 * (1.0 - topBarOpacity);
@@ -236,83 +253,87 @@ class _ParallaxDetailScreenState extends State<ParallaxDetailScreen> {
                             // Clipped to container, scales 1.06 -> 1.00 and translates
                             // horizontally +24px -> 0px over Interval(0.00, 0.85).
                             // Oversized viewport prevents exposed edges.
-                            // Opacity: full 1.0 throughout (no full-screen fading).
+                            // Forward opacity: constant 1.0 throughout.
+                            // Reverse opacity: smooth coordinated fade out with Curves.easeInOutCubic.
                             // =========================================================
-                            Container(
-                              height: 230,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE2E8F0),
-                                borderRadius: BorderRadius.circular(24),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF18274B).withValues(alpha: 0.08),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  // Moving & Scaling Mountain Image
-                                  Transform.translate(
-                                    offset: Offset(imageShiftX, 0),
-                                    child: Transform.scale(
-                                      scale: imageScale,
-                                      child: FractionallySizedBox(
-                                        widthFactor: 1.25,
-                                        heightFactor: 1.25,
-                                        child: MountainImageWidget(
-                                          imageUrl: mountain.imageUrl,
-                                          mountainName: mountain.name,
-                                          fit: BoxFit.cover,
+                            Opacity(
+                              opacity: photoOpacity.clamp(0.0, 1.0),
+                              child: Container(
+                                height: 230,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE2E8F0),
+                                  borderRadius: BorderRadius.circular(24),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF18274B).withValues(alpha: 0.08),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    // Moving & Scaling Mountain Image
+                                    Transform.translate(
+                                      offset: Offset(imageShiftX, 0),
+                                      child: Transform.scale(
+                                        scale: imageScale,
+                                        child: FractionallySizedBox(
+                                          widthFactor: 1.25,
+                                          heightFactor: 1.25,
+                                          child: MountainImageWidget(
+                                            imageUrl: mountain.imageUrl,
+                                            mountainName: mountain.name,
+                                            fit: BoxFit.cover,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
 
-                                  // Atmospheric gradient overlay for contrast & depth
-                                  Positioned.fill(
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                          colors: [
-                                            Colors.black.withValues(alpha: 0.15),
-                                            Colors.transparent,
-                                            Colors.black.withValues(alpha: 0.55),
-                                          ],
-                                          stops: const [0.0, 0.45, 1.0],
+                                    // Atmospheric gradient overlay for contrast & depth
+                                    Positioned.fill(
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Colors.black.withValues(alpha: 0.15),
+                                              Colors.transparent,
+                                              Colors.black.withValues(alpha: 0.55),
+                                            ],
+                                            stops: const [0.0, 0.45, 1.0],
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
 
-                                  // Overlaid Mountain Type Badge
-                                  Positioned(
-                                    bottom: 14,
-                                    left: 16,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF7C3AED),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        mountain.mountainType.toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.8,
+                                    // Overlaid Mountain Type Badge
+                                    Positioned(
+                                      bottom: 14,
+                                      left: 16,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF7C3AED),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          mountain.mountainType.toUpperCase(),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.8,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                             const SizedBox(height: 20),

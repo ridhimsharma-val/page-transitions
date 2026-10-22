@@ -860,6 +860,11 @@ void main() {
 
     // Test reverse at 0.50, 0.22, 0.12
     controller.reverse();
+    controller.value = 0.50;
+    await tester.pump();
+    expect(find.text('Mount Everest'), findsWidgets);
+    expect(find.text('Expedition Overview'), findsOneWidget);
+
     controller.value = 0.22;
     await tester.pump();
     expect(find.text('Mount Everest'), findsWidgets);
@@ -869,5 +874,93 @@ void main() {
     await tester.pump();
     expect(find.text('Mount Everest'), findsWidgets);
     expect(find.text('Expedition Overview'), findsOneWidget);
+  });
+
+  testWidgets('Design 04 — Coordinated reverse opacity and constant forward photo opacity',
+      (WidgetTester tester) async {
+    late AnimationController controller;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            return Builder(
+              builder: (ctx) {
+                return Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () {
+                      final tickerProvider = Navigator.of(ctx);
+                      controller = AnimationController(
+                        vsync: tickerProvider,
+                        duration: const Duration(milliseconds: 700),
+                        reverseDuration: const Duration(milliseconds: 550),
+                      );
+                      Navigator.of(ctx).push(
+                        MaterialPageRoute(
+                          builder: (_) => ParallaxDetailScreen(
+                            mountain: MountainData.everest,
+                            animation: controller,
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('Open'),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    // 1. Forward motion: photo opacity must remain constant 1.0
+    controller.forward();
+    controller.value = 0.50;
+    await tester.pump();
+
+    // Find the opacity wrapping the photo container (height: 230)
+    final photoContainerFinder = find.byWidgetPredicate(
+      (w) => w is Container && w.constraints?.maxHeight == 230,
+    );
+    expect(photoContainerFinder, findsOneWidget);
+    final photoOpacityForward = tester
+        .widget<Opacity>(
+          find.ancestor(of: photoContainerFinder, matching: find.byType(Opacity)).first,
+        )
+        .opacity;
+    expect(photoOpacityForward, 1.0);
+
+    // 2. Reverse motion: photo opacity must fade smoothly, reaching 0.0 at t=0.0
+    controller.reverse();
+    controller.value = 1.0;
+    await tester.pump();
+    final photoOpacityReverse100 = tester
+        .widget<Opacity>(
+          find.ancestor(of: photoContainerFinder, matching: find.byType(Opacity)).first,
+        )
+        .opacity;
+    expect(photoOpacityReverse100, 1.0);
+
+    controller.value = 0.50;
+    await tester.pump();
+    final photoOpacityReverse50 = tester
+        .widget<Opacity>(
+          find.ancestor(of: photoContainerFinder, matching: find.byType(Opacity)).first,
+        )
+        .opacity;
+    expect(photoOpacityReverse50, greaterThan(0.5));
+    expect(photoOpacityReverse50, lessThan(0.8));
+
+    controller.value = 0.0;
+    await tester.pump();
+    final photoOpacityReverse0 = tester
+        .widget<Opacity>(
+          find.ancestor(of: photoContainerFinder, matching: find.byType(Opacity)).first,
+        )
+        .opacity;
+    expect(photoOpacityReverse0, 0.0);
   });
 }
