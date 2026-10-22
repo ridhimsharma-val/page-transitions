@@ -68,10 +68,8 @@ class _CircularCarouselExploreScreenState
     final key = _cardKeys[_currentIndex];
     final renderBox = key?.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox != null && renderBox.hasSize) {
-      final position = renderBox.localToGlobal(Offset.zero);
-      return Offset(
-        position.dx + (renderBox.size.width / 2),
-        position.dy + (renderBox.size.height / 2),
+      return renderBox.localToGlobal(
+        Offset(renderBox.size.width / 2, renderBox.size.height / 2),
       );
     }
 
@@ -261,14 +259,17 @@ class _CircularCarouselExploreScreenState
                               final double absDelta = delta.abs();
 
                               // Scale: active card = 1.0, immediate neighbors = ~0.85
-                              final double scale = (1.0 - (0.16 * absDelta)).clamp(0.74, 1.0);
+                              final double scale = (1.0 - (0.15 * absDelta)).clamp(0.76, 1.0);
 
-                              // Curved vertical arc: center card = 0, side cards drop by ~22px
-                              final double verticalOffset =
-                                  (22.0 * absDelta * absDelta.clamp(0.0, 1.5)).clamp(0.0, 44.0);
+                              // Curved vertical arc: center card = 0, side cards drop by 22px
+                              final double verticalOffset = (22.0 *
+                                      (absDelta <= 1.0
+                                          ? absDelta * absDelta
+                                          : (2.0 * absDelta - 1.0)))
+                                  .clamp(0.0, 44.0);
 
-                              // Opacity: center card = 1.0, side cards minimum ~0.68
-                              final double opacity = (1.0 - (0.32 * absDelta)).clamp(0.68, 1.0);
+                              // Opacity: center card = 1.0, side cards minimum ~0.70
+                              final double opacity = (1.0 - (0.30 * absDelta)).clamp(0.70, 1.0);
 
                               final bool isSelected = index == _currentIndex;
 
@@ -511,7 +512,7 @@ class _CircularCarouselExploreScreenState
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      mountain.elevation,
+                      mountain.shortElevation,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
@@ -540,6 +541,8 @@ class _CircularCarouselExploreScreenState
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.4,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Row(
@@ -552,7 +555,7 @@ class _CircularCarouselExploreScreenState
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          mountain.location,
+                          mountain.shortLocation,
                           style: const TextStyle(
                             color: Color(0xFFE2E8F0),
                             fontSize: 12,

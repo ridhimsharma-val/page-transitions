@@ -1027,7 +1027,7 @@ void main() {
     expect(find.text('DESIGN 05 • CIRCULAR CAROUSEL'), findsOneWidget);
     expect(find.text('Explore Peaks'), findsOneWidget);
     expect(find.text('Mount Everest'), findsWidgets);
-    expect(find.text('8,848.86 m'), findsWidgets);
+    expect(find.text('8,848 m'), findsWidgets);
 
     // 2. Swipe left to navigate to K2
     await tester.drag(find.byType(PageView), const Offset(-250, 0));
