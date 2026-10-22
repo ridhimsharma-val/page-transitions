@@ -7,7 +7,6 @@ import 'shared_axis_demo/shared_axis_explore_screen.dart';
 import 'zoom_fade_demo/zoom_fade_explore_screen.dart';
 import 'parallax_demo/parallax_explore_screen.dart';
 import 'circular_carousel_demo/circular_carousel_explore_screen.dart';
-import 'shared_element_demo/shared_element_explore_screen.dart';
 
 // Transition demos accessible through the Motion Experiments gallery card
 import 'circular_demo_screen.dart';
@@ -123,19 +122,6 @@ class _ExploreDesignsScreenState extends State<ExploreDesignsScreen> {
         accentColor: Color(0xFF7C3AED),
         isAvailable: true,
         destinationPage: CircularCarouselExploreScreen(),
-      ),
-
-      // 6. Design 06 — Shared Element Morph
-      const DesignConcept(
-        id: 'shared-element-morph',
-        title: 'Design 06 — Shared Element Morph',
-        category: 'Design 06 • Motion',
-        description:
-            'Cinematic shared-element flight with coordinated corner-radius morphing and staggered content arrival.',
-        icon: Icons.auto_awesome_motion_rounded,
-        accentColor: Color(0xFF7C3AED),
-        isAvailable: true,
-        destinationPage: SharedElementExploreScreen(),
       ),
 
       // 3. Interactive Motion Experiments (Hosts the 5 transition demos)
