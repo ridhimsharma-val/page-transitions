@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 /// originating from a specific anchor point (or screen center if omitted).
 ///
 /// Configured for Design 05 with:
-/// - Forward duration: 650 ms, Curve: Curves.easeOutCubic
-/// - Reverse duration: 500 ms, Curve: Curves.easeInOutCubic
+/// - Forward duration: 900 ms, Curve: Curves.easeInOutCubic
+/// - Reverse duration: 650 ms, Curve: Curves.easeInOutCubic
 /// - Non-opaque route (`opaque: false`) allowing the underlying Explore screen
 ///   to remain visible outside the circular aperture during the transition.
-/// - Circular clipping starting at ~1px expanding to farthest corner + 2px safety margin.
+/// - Dynamic coordinate space conversion from global to route-local coordinates.
+/// - Circular clipping starting at ~1px expanding to farthest corner + 3px safety margin.
 class CircularRevealPageRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
   final Offset? origin;
@@ -24,7 +25,7 @@ class CircularRevealPageRoute<T> extends PageRouteBuilder<T> {
     this.origin,
     this.transitionDurationOverride,
     this.reverseTransitionDurationOverride,
-    this.curve = Curves.easeOutCubic,
+    this.curve = Curves.easeInOutCubic,
     this.reverseCurve = Curves.easeInOutCubic,
     this.showRing = false,
     super.opaque = false,
@@ -32,9 +33,9 @@ class CircularRevealPageRoute<T> extends PageRouteBuilder<T> {
   }) : super(
           pageBuilder: (context, animation, secondaryAnimation) => page,
           transitionDuration:
-              transitionDurationOverride ?? const Duration(milliseconds: 650),
+              transitionDurationOverride ?? const Duration(milliseconds: 900),
           reverseTransitionDuration: reverseTransitionDurationOverride ??
-              const Duration(milliseconds: 500),
+              const Duration(milliseconds: 650),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             final curvedAnimation = CurvedAnimation(
               parent: animation,
@@ -45,7 +46,17 @@ class CircularRevealPageRoute<T> extends PageRouteBuilder<T> {
             return LayoutBuilder(
               builder: (context, constraints) {
                 final screenSize = Size(constraints.maxWidth, constraints.maxHeight);
-                final revealOrigin = origin ?? Offset(screenSize.width / 2, screenSize.height / 2);
+                Offset revealOrigin;
+                if (origin != null) {
+                  final routeBox = context.findRenderObject() as RenderBox?;
+                  if (routeBox != null && routeBox.hasSize) {
+                    revealOrigin = routeBox.globalToLocal(origin);
+                  } else {
+                    revealOrigin = origin;
+                  }
+                } else {
+                  revealOrigin = Offset(screenSize.width / 2, screenSize.height / 2);
+                }
 
                 return AnimatedBuilder(
                   animation: curvedAnimation,
@@ -56,6 +67,8 @@ class CircularRevealPageRoute<T> extends PageRouteBuilder<T> {
                           clipper: CircularRevealClipper(
                             progress: curvedAnimation.value,
                             origin: revealOrigin,
+                            minRadius: 1.0,
+                            safetyMargin: 3.0,
                           ),
                           child: child,
                         ),
@@ -90,7 +103,7 @@ class CircularRevealClipper extends CustomClipper<Path> {
     required this.progress,
     required this.origin,
     this.minRadius = 1.0,
-    this.safetyMargin = 2.0,
+    this.safetyMargin = 3.0,
   });
 
   @override

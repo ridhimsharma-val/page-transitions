@@ -90,6 +90,17 @@ final List<int> _transparentImage = [
   0x60, 0x82,
 ];
 
+class _TestNavigatorObserver extends NavigatorObserver {
+  final void Function(Route<dynamic> route)? onPushed;
+  _TestNavigatorObserver({this.onPushed});
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    onPushed?.call(route);
+  }
+}
+
 void main() {
   setUpAll(() {
     HttpOverrides.global = _TestHttpOverrides();
@@ -1004,9 +1015,81 @@ void main() {
     final route = CircularRevealPageRoute(
       page: const MountainDetailScreen(mountain: MountainData.everest),
     );
-    expect(route.transitionDuration, const Duration(milliseconds: 650));
-    expect(route.reverseTransitionDuration, const Duration(milliseconds: 500));
+    expect(route.transitionDuration, const Duration(milliseconds: 900));
+    expect(route.reverseTransitionDuration, const Duration(milliseconds: 650));
+    expect(route.curve, Curves.easeInOutCubic);
+    expect(route.reverseCurve, Curves.easeInOutCubic);
     expect(route.opaque, isFalse);
+  });
+
+  testWidgets('Design 05 — Dynamic card center reveal origin and coordinate space conversion',
+      (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    CircularRevealPageRoute? capturedRoute;
+    final observer = _TestNavigatorObserver(
+      onPushed: (route) {
+        if (route is CircularRevealPageRoute) {
+          capturedRoute = route;
+        }
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorObservers: [observer],
+        home: const CircularCarouselExploreScreen(),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // 1. Verify Mount Everest card center origin
+    final everestCardFinder = find.text('Mount Everest').first;
+    expect(everestCardFinder, findsOneWidget);
+
+    await tester.tap(everestCardFinder);
+    await tester.pump();
+
+    expect(capturedRoute, isNotNull);
+    expect(capturedRoute!.origin, isNotNull);
+    final everestOrigin = capturedRoute!.origin!;
+    // In 390x844 viewport, active centered card center should be around dx = 195 (390/2)
+    expect(everestOrigin.dx, closeTo(195.0, 5.0));
+    expect(everestOrigin.dy, greaterThan(200.0));
+    expect(everestOrigin.dy, lessThan(600.0));
+    expect(capturedRoute!.transitionDuration, const Duration(milliseconds: 900));
+    expect(capturedRoute!.reverseTransitionDuration, const Duration(milliseconds: 650));
+
+    // Finish forward transition and return
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+
+    // 2. Swipe to next mountain (K2) and verify origin is dynamically recalculated
+    capturedRoute = null;
+    await tester.drag(find.byType(PageView), const Offset(-250, 0));
+    await tester.pumpAndSettle();
+
+    final k2CardFinder = find.text('K2').first;
+    expect(k2CardFinder, findsOneWidget);
+
+    await tester.tap(k2CardFinder);
+    await tester.pump();
+
+    expect(capturedRoute, isNotNull);
+    expect(capturedRoute!.origin, isNotNull);
+    final k2Origin = capturedRoute!.origin!;
+    expect(k2Origin.dx, closeTo(195.0, 5.0));
+    // Origin is dynamically calculated from RenderBox geometry for the selected mountain
+    expect(k2Origin.dy, greaterThan(200.0));
+    expect(k2Origin.dy, lessThan(600.0));
+
+    // Clean up navigation
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('Design 05 — CircularCarouselExploreScreen renders, responsive sizing, and swipe',
@@ -1065,14 +1148,14 @@ void main() {
     await tester.tap(find.text('Mount Everest').first);
     await tester.pump();
 
-    // During transition at 325ms (halfway)
-    await tester.pump(const Duration(milliseconds: 325));
+    // During transition at 450ms (halfway of 900ms)
+    await tester.pump(const Duration(milliseconds: 450));
     // Verify both screens exist in tree during reveal
     expect(find.byType(MountainDetailScreen), findsOneWidget);
     expect(find.byType(CircularCarouselExploreScreen), findsOneWidget);
 
-    // Complete forward reveal transition (650ms total)
-    await tester.pump(const Duration(milliseconds: 400));
+    // Complete forward reveal transition (900ms total)
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
     // Verify MountainDetailScreen is displayed for Mount Everest
@@ -1083,12 +1166,12 @@ void main() {
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pump();
 
-    // Halfway reverse transition (250ms of 500ms)
-    await tester.pump(const Duration(milliseconds: 250));
+    // Halfway reverse transition (325ms of 650ms)
+    await tester.pump(const Duration(milliseconds: 325));
     expect(find.byType(CircularCarouselExploreScreen), findsOneWidget);
 
     // Complete reverse transition
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
     // Verify returned to Explore screen and Mount Everest is still selected
@@ -1103,7 +1186,7 @@ void main() {
     // Tap Details action button for K2
     await tester.tap(find.text('Details'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump(const Duration(milliseconds: 950));
     await tester.pumpAndSettle();
 
     // Verify K2 details
@@ -1113,7 +1196,7 @@ void main() {
     // Pop back
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 550));
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
 
     // Verify K2 remains the active mountain upon return
